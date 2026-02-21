@@ -1,0 +1,191 @@
+/*
+===============================================================================
+Stored Procedure: Load Bronze Layer (BikeStore)
+===============================================================================
+Usage:
+EXEC bronze.load_bronze;
+===============================================================================
+*/
+
+CREATE OR ALTER PROCEDURE bronze.load_bronze
+AS
+BEGIN
+
+    DECLARE 
+        @start_time DATETIME,
+        @end_time DATETIME,
+        @batch_start_time DATETIME,
+        @batch_end_time DATETIME,
+        @row_count INT;
+
+    BEGIN TRY
+
+        SET @batch_start_time = GETDATE();
+
+        PRINT '===========================================';
+        PRINT 'Loading Bronze Layer';
+        PRINT '===========================================';
+
+        /* CUSTOMERS */
+        SET @start_time = GETDATE();
+        TRUNCATE TABLE bronze.customers;
+
+        BULK INSERT bronze.customers
+        FROM 'C:\Bikestore\customers.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2,
+            FIELDQUOTE='"',
+            KEEPNULLS
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.customers;
+        PRINT 'Customers Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* ORDERS */
+        SET @start_time = GETDATE();
+        TRUNCATE TABLE bronze.orders;
+
+        BULK INSERT bronze.orders
+        FROM 'C:\Bikestore\orders.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2,
+            FIELDQUOTE='"',
+            KEEPNULLS
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.orders;
+        PRINT 'Orders Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* ORDER ITEMS */
+        TRUNCATE TABLE bronze.order_items;
+
+        BULK INSERT bronze.order_items
+        FROM 'C:\Bikestore\order_items.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.order_items;
+        PRINT 'Order Items Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* PRODUCTS */
+        TRUNCATE TABLE bronze.products;
+
+        BULK INSERT bronze.products
+        FROM 'C:\Bikestore\products.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.products;
+        PRINT 'Products Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* CATEGORIES */
+        TRUNCATE TABLE bronze.categories;
+
+        BULK INSERT bronze.categories
+        FROM 'C:\Bikestore\categories.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.categories;
+        PRINT 'Categories Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* BRANDS */
+        TRUNCATE TABLE bronze.brands;
+
+        BULK INSERT bronze.brands
+        FROM 'C:\Bikestore\brands.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.brands;
+        PRINT 'Brands Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* STAFFS */
+        TRUNCATE TABLE bronze.staffs;
+
+        BULK INSERT bronze.staffs
+        FROM 'C:\Bikestore\staffs.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2,
+            KEEPNULLS
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.staffs;
+        PRINT 'Staffs Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* STORES */
+        TRUNCATE TABLE bronze.stores;
+
+        BULK INSERT bronze.stores
+        FROM 'C:\Bikestore\stores.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.stores;
+        PRINT 'Stores Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        /* STOCKS */
+        TRUNCATE TABLE bronze.stocks;
+
+        BULK INSERT bronze.stocks
+        FROM 'C:\Bikestore\stocks.csv'
+        WITH (
+            FORMAT='CSV',
+            FIRSTROW=2
+        );
+
+        SELECT @row_count = COUNT(*) FROM bronze.stocks;
+        PRINT 'Stocks Loaded: ' + CAST(@row_count AS NVARCHAR);
+
+        SET @batch_end_time = GETDATE();
+
+        PRINT '===========================================';
+        PRINT 'Bronze Load Completed Successfully';
+        PRINT 'Total Time: ' + CAST(DATEDIFF(SECOND,@batch_start_time,@batch_end_time) AS NVARCHAR) + ' seconds';
+        PRINT '===========================================';
+
+    END TRY
+
+    BEGIN CATCH
+
+        PRINT '===========================================';
+        PRINT 'ERROR DURING BRONZE LOAD';
+        PRINT ERROR_MESSAGE();
+        PRINT '===========================================';
+
+    END CATCH
+
+END;
+
+-- Checking the Loaded Data 
+
+SELECT 'customers', COUNT(*) FROM bronze.customers
+UNION ALL
+SELECT 'orders', COUNT(*) FROM bronze.orders
+UNION ALL
+SELECT 'order_items', COUNT(*) FROM bronze.order_items
+UNION ALL
+SELECT 'products', COUNT(*) FROM bronze.products
+UNION ALL
+SELECT 'categories', COUNT(*) FROM bronze.categories
+UNION ALL
+SELECT 'brands', COUNT(*) FROM bronze.brands
+UNION ALL
+SELECT 'staffs', COUNT(*) FROM bronze.staffs
+UNION ALL
+SELECT 'stores', COUNT(*) FROM bronze.stores
+UNION ALL
+SELECT 'stocks', COUNT(*) FROM bronze.stocks;
