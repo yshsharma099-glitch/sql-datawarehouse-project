@@ -1,325 +1,271 @@
 CREATE OR ALTER PROCEDURE silver.load_silver
 AS
 BEGIN
-SET NOCOUNT ON;
-
-DECLARE @start_time DATETIME, @end_time DATETIME, 
-        @batch_start_time DATETIME, @batch_end_time DATETIME;
-
-BEGIN TRY
-
-SET @batch_start_time = GETDATE();
-
-PRINT '========================================';
-PRINT 'Starting Silver Layer Load';
-PRINT 'Batch Start Time: ' + CAST(@batch_start_time AS VARCHAR);
-PRINT '========================================';
-
-
-/* =====================================================
-CUSTOMERS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.customers...';
-
-SET @start_time = GETDATE();
-TRUNCATE TABLE silver.customers;
-
-INSERT INTO silver.customers
-(
-customer_id,
-first_name,
-last_name,
-phone,
-email,
-street,
-city,
-state,
-zip_code
-)
-SELECT
-customer_id,
-UPPER(TRIM(first_name)),
-UPPER(TRIM(last_name)),
-NULLIF(TRIM(phone),''),
-LOWER(TRIM(email)),
-TRIM(street),
-TRIM(city),
-UPPER(TRIM(state)),
-TRIM(zip_code)
-FROM
-(
-SELECT *,
-ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id) rn
-FROM bronze.customers
-WHERE customer_id IS NOT NULL
-) t
-WHERE rn = 1;
-
-PRINT 'Customers Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-ORDERS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.orders...';
-
-SET @start_time = GETDATE();
-TRUNCATE TABLE silver.orders;
-
-INSERT INTO silver.orders
-(
-order_id,
-customer_id,
-order_status,
-order_date,
-required_date,
-shipped_date,
-store_id,
-staff_id
-)
-SELECT
-order_id,
-customer_id,
-CASE 
-WHEN order_status NOT IN (1,2,3,4) THEN 1
-ELSE order_status
-END,
-TRY_CONVERT(DATE,order_date),
-TRY_CONVERT(DATE,required_date),
-TRY_CONVERT(DATE,shipped_date),
-TRY_CONVERT(INT,NULLIF(REPLACE(store_id,'NULL',''),'')),
-TRY_CONVERT(INT,NULLIF(REPLACE(staff_id,'NULL',''),''))
-
-FROM bronze.orders;
-
-PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-ORDER ITEMS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.order_items...';
-
-TRUNCATE TABLE silver.order_items;
-
-INSERT INTO silver.order_items
-(
-order_id,
-item_id,
-product_id,
-quantity,
-list_price,
-discount
-)
-SELECT
-order_id,
-item_id,
-product_id,
-
-CASE
-WHEN quantity <= 0 THEN 1
-ELSE quantity
-END,
-
-CASE
-WHEN list_price <= 0 THEN ABS(list_price)
-ELSE list_price
-END,
-
-CASE
-WHEN discount < 0 THEN 0
-WHEN discount > 1 THEN 0
-ELSE discount
-END
-
-FROM bronze.order_items;
-
-PRINT 'Order Items Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-PRODUCTS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.products...';
-
-TRUNCATE TABLE silver.products;
-
-INSERT INTO silver.products
-(
-product_id,
-product_name,
-brand_id,
-category_id,
-model_year,
-list_price
-)
-SELECT
-product_id,
-TRIM(product_name),
-TRY_CONVERT(INT,NULLIF(REPLACE(brand_id,'NULL',''),'')),
-TRY_CONVERT(INT,NULLIF(REPLACE(category_id,'NULL',''),'')),
-model_year,
-CASE
-WHEN list_price < 0 THEN ABS(list_price)
-ELSE list_price
-END
-FROM bronze.products;
-
-PRINT 'Products Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-CATEGORIES CLEANING
-===================================================== */
-PRINT 'Loading silver.categories...';
-
-TRUNCATE TABLE silver.categories;
-
-INSERT INTO silver.categories
-(
-category_id,
-category_name
-)
-SELECT
-category_id,
-TRIM(category_name)
-FROM bronze.categories;
-
-PRINT 'Categories Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-BRANDS CLEANING
-===================================================== */
-PRINT 'Loading silver.brands...';
-
-TRUNCATE TABLE silver.brands;
-
-INSERT INTO silver.brands
-(
-brand_id,
-brand_name
-)
-SELECT
-brand_id,
-TRIM(brand_name)
-FROM bronze.brands;
-
-PRINT 'Brands Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-STAFFS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.staffs...';
-
-TRUNCATE TABLE silver.staffs;
-
-INSERT INTO silver.staffs
-(
-staff_id,
-first_name,
-last_name,
-email,
-phone,
-active,
-store_id,
-manager_id
-)
-SELECT
-staff_id,
-TRIM(first_name),
-TRIM(last_name),
-LOWER(email),
-NULLIF(TRIM(phone),''),
-active,
-TRY_CONVERT(INT,NULLIF(REPLACE(store_id,'NULL',''),'')),
-TRY_CONVERT(INT,NULLIF(REPLACE(manager_id,'NULL',''),''))
-
-FROM bronze.staffs;
-
-PRINT 'Staffs Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-STORES CLEANING
-===================================================== */
-PRINT 'Loading silver.stores...';
-
-TRUNCATE TABLE silver.stores;
-
-INSERT INTO silver.stores
-(
-store_id,
-store_name,
-phone,
-email,
-street,
-city,
-state,
-zip_code
-)
-SELECT
-store_id,
-TRIM(store_name),
-NULLIF(TRIM(phone),''),
-LOWER(TRIM(email)),
-TRIM(street),
-TRIM(city),
-UPPER(TRIM(state)),
-TRIM(zip_code)
-FROM bronze.stores;
-
-PRINT 'Stores Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-STOCKS TRANSFORMATION
-===================================================== */
-PRINT 'Loading silver.stocks...';
-
-TRUNCATE TABLE silver.stocks;
-
-INSERT INTO silver.stocks
-(
-store_id,
-product_id,
-quantity
-)
-SELECT
-TRY_CONVERT(INT,NULLIF(REPLACE(store_id,'NULL',''),'')),
-TRY_CONVERT(INT,NULLIF(REPLACE(product_id,'NULL',''),'')),
-
-CASE
-WHEN quantity < 0 THEN 0
-ELSE quantity
-END
-
-FROM bronze.stocks;
-
-PRINT 'Stocks Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
-
-
-/* =====================================================
-END
-===================================================== */
-
-SET @batch_end_time = GETDATE();
-
-PRINT '========================================';
-PRINT 'Silver Layer Completed';
-PRINT 'Total Duration: ' + CAST(DATEDIFF(SECOND,@batch_start_time,@batch_end_time) AS VARCHAR) + ' seconds';
-PRINT '========================================';
-
-END TRY
-BEGIN CATCH
-
-PRINT '========================================';
-PRINT 'ERROR IN SILVER LOAD';
-PRINT ERROR_MESSAGE();
-PRINT '========================================';
-
-END CATCH
+    SET NOCOUNT ON;
+
+    DECLARE @batch_start_time DATETIME = GETDATE();
+    DECLARE @batch_end_time DATETIME;
+
+    PRINT '========================================';
+    PRINT 'Starting Silver Layer Load';
+    PRINT 'Batch Start Time: ' + CAST(@batch_start_time AS VARCHAR);
+    PRINT '========================================';
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        /* =====================================================
+        ETL ERRORS TABLE
+        ====================================================== */
+        IF OBJECT_ID('silver.etl_errors') IS NULL
+        BEGIN
+            CREATE TABLE silver.etl_errors (
+                table_name NVARCHAR(50),
+                record_id NVARCHAR(50),
+                error_type NVARCHAR(100),
+                error_description NVARCHAR(MAX),
+                created_at DATETIME DEFAULT GETDATE()
+            );
+        END
+
+        /* =====================================================
+        CUSTOMERS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.customers...';
+        TRUNCATE TABLE silver.customers;
+
+        INSERT INTO silver.customers
+        (
+            customer_id,
+            first_name,
+            last_name,
+            phone,
+            email,
+            street,
+            city,
+            state,
+            zip_code
+        )
+        SELECT
+            customer_id,
+            UPPER(TRIM(first_name)),
+            UPPER(TRIM(last_name)),
+            NULLIF(TRIM(phone),''),
+            LOWER(TRIM(email)),
+            TRIM(street),
+            TRIM(city),
+            UPPER(TRIM(state)),
+            TRIM(zip_code)
+        FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id) rn
+            FROM bronze.customers
+            WHERE customer_id IS NOT NULL
+        ) t
+        WHERE rn = 1;
+
+        PRINT 'Customers Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        ORDERS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.orders...';
+        TRUNCATE TABLE silver.orders;
+
+        INSERT INTO silver.orders
+        (
+            order_id,
+            customer_id,
+            order_status,
+            order_date,
+            required_date,
+            shipped_date,
+            store_id,
+            staff_id
+        )
+        SELECT
+            o.order_id,
+            o.customer_id,
+            CASE WHEN o.order_status NOT IN (1,2,3,4) THEN 1 ELSE o.order_status END,
+            TRY_CONVERT(DATE,o.order_date),
+            TRY_CONVERT(DATE,o.required_date),
+            TRY_CONVERT(DATE,o.shipped_date),
+            TRY_CONVERT(INT,NULLIF(REPLACE(o.store_id,'NULL',''),'')),
+            TRY_CONVERT(INT,NULLIF(REPLACE(o.staff_id,'NULL',''),''))
+        FROM bronze.orders o
+        WHERE o.customer_id IN (SELECT customer_id FROM silver.customers);
+
+        PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        ORDER ITEMS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.order_items...';
+        TRUNCATE TABLE silver.order_items;
+
+        INSERT INTO silver.order_items
+        (
+            order_id,
+            item_id,
+            product_id,
+            quantity,
+            list_price,
+            discount
+        )
+        SELECT
+            oi.order_id,
+            oi.item_id,
+            oi.product_id,
+            CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END,
+            CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END,
+            CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END
+        FROM bronze.order_items oi
+        WHERE oi.order_id IN (SELECT order_id FROM silver.orders)
+          AND oi.product_id IN (SELECT product_id FROM bronze.products);
+
+        PRINT 'Order Items Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        PRODUCTS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.products...';
+        TRUNCATE TABLE silver.products;
+
+        INSERT INTO silver.products
+        (
+            product_id,
+            product_name,
+            brand_id,
+            category_id,
+            model_year,
+            list_price
+        )
+        SELECT
+            p.product_id,
+            TRIM(p.product_name),
+            TRY_CONVERT(INT,NULLIF(REPLACE(p.brand_id,'NULL',''),'')),
+            TRY_CONVERT(INT,NULLIF(REPLACE(p.category_id,'NULL',''),'')),
+            CASE WHEN p.model_year < 1900 OR p.model_year > YEAR(GETDATE()) THEN NULL ELSE p.model_year END,
+            CASE WHEN p.list_price < 0 THEN ABS(p.list_price) ELSE p.list_price END
+        FROM bronze.products p;
+
+        PRINT 'Products Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        CATEGORIES & BRANDS CLEANING
+        ====================================================== */
+        PRINT 'Loading silver.categories...';
+        TRUNCATE TABLE silver.categories;
+        INSERT INTO silver.categories(category_id, category_name)
+        SELECT category_id, TRIM(category_name)
+        FROM bronze.categories;
+        PRINT 'Categories Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        PRINT 'Loading silver.brands...';
+        TRUNCATE TABLE silver.brands;
+        INSERT INTO silver.brands(brand_id, brand_name)
+        SELECT brand_id, TRIM(brand_name)
+        FROM bronze.brands;
+        PRINT 'Brands Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        STAFFS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.staffs...';
+        TRUNCATE TABLE silver.staffs;
+
+        INSERT INTO silver.staffs
+        (
+            staff_id,
+            first_name,
+            last_name,
+            email,
+            phone,
+            active,
+            store_id,
+            manager_id
+        )
+        SELECT
+            s.staff_id,
+            TRIM(s.first_name),
+            TRIM(s.last_name),
+            LOWER(s.email),
+            NULLIF(TRIM(s.phone),''),
+            CASE WHEN s.active NOT IN (0,1) THEN 1 ELSE s.active END,
+            TRY_CONVERT(INT,NULLIF(REPLACE(s.store_id,'NULL',''),'')),
+            TRY_CONVERT(INT,NULLIF(REPLACE(s.manager_id,'NULL',''),''))
+        FROM bronze.staffs s;
+
+        PRINT 'Staffs Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        STORES CLEANING
+        ====================================================== */
+        PRINT 'Loading silver.stores...';
+        TRUNCATE TABLE silver.stores;
+
+        INSERT INTO silver.stores
+        (
+            store_id,
+            store_name,
+            phone,
+            email,
+            street,
+            city,
+            state,
+            zip_code
+        )
+        SELECT
+            store_id,
+            TRIM(store_name),
+            NULLIF(TRIM(phone),''),
+            LOWER(TRIM(email)),
+            TRIM(street),
+            TRIM(city),
+            UPPER(TRIM(state)),
+            TRIM(zip_code)
+        FROM bronze.stores;
+
+        PRINT 'Stores Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        /* =====================================================
+        STOCKS TRANSFORMATION
+        ====================================================== */
+        PRINT 'Loading silver.stocks...';
+        TRUNCATE TABLE silver.stocks;
+
+        INSERT INTO silver.stocks
+        (
+            store_id,
+            product_id,
+            quantity
+        )
+        SELECT
+            TRY_CONVERT(INT,NULLIF(REPLACE(store_id,'NULL',''),'')),
+            TRY_CONVERT(INT,NULLIF(REPLACE(product_id,'NULL',''),'')),
+            CASE WHEN quantity < 0 THEN 0 ELSE quantity END
+        FROM bronze.stocks
+        WHERE store_id IN (SELECT store_id FROM silver.stores)
+          AND product_id IN (SELECT product_id FROM silver.products);
+
+        PRINT 'Stocks Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
+
+        COMMIT TRANSACTION;
+
+        SET @batch_end_time = GETDATE();
+        PRINT '========================================';
+        PRINT 'Silver Layer Completed';
+        PRINT 'Total Duration: ' + CAST(DATEDIFF(SECOND,@batch_start_time,@batch_end_time) AS VARCHAR) + ' seconds';
+        PRINT '========================================';
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT '========================================';
+        PRINT 'ERROR IN SILVER LOAD';
+        PRINT ERROR_MESSAGE();
+        PRINT '========================================';
+    END CATCH
 
 END;
 GO
