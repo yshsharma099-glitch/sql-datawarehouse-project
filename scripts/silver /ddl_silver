@@ -98,8 +98,3 @@ CREATE TABLE silver.stocks (
     quantity INT,
     dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
-GO
-
-
-
-
