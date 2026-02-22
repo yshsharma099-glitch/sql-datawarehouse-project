@@ -1,0 +1,97 @@
+-----------------------------------------------
+-- DATA QUALITY CHECKS: SILVER LAYER
+-----------------------------------------------
+
+-- 1. Unwanted spaces check
+SELECT * FROM silver.brands
+WHERE brand_name <> TRIM(brand_name);
+
+SELECT * FROM silver.categories
+WHERE category_name <> TRIM(category_name);
+
+SELECT * FROM silver.customers
+WHERE first_name <> TRIM(first_name) 
+   OR last_name <> TRIM(last_name) 
+   OR email <> TRIM(email)
+   OR street <> TRIM(street) 
+   OR city <> TRIM(city) 
+   OR state <> TRIM(state);
+
+SELECT * FROM silver.stores
+WHERE store_name <> TRIM(store_name)
+   OR street <> TRIM(street)
+   OR city <> TRIM(city)
+   OR state <> TRIM(state);
+
+SELECT * FROM silver.staffs
+WHERE first_name <> TRIM(first_name)
+   OR last_name <> TRIM(last_name)
+   OR email <> TRIM(email);
+
+SELECT * FROM silver.products
+WHERE product_name <> TRIM(product_name);
+
+-----------------------------------------------
+-- 2. NULL / Missing Values Check
+-----------------------------------------------
+
+-- Customers
+SELECT 
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN phone IS NULL THEN 1 ELSE 0 END) AS phone_nulls,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS email_nulls,
+    SUM(CASE WHEN street IS NULL THEN 1 ELSE 0 END) AS street_nulls,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS city_nulls,
+    SUM(CASE WHEN state IS NULL THEN 1 ELSE 0 END) AS state_nulls,
+    SUM(CASE WHEN zip_code IS NULL OR LEN(zip_code) != 5 THEN 1 ELSE 0 END) AS invalid_zip_code
+FROM silver.customers;
+
+-- Orders
+SELECT 
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS missing_customer_id,
+    SUM(CASE WHEN order_status NOT IN (1,2,3,4) THEN 1 ELSE 0 END) AS invalid_status,
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS missing_order_date
+FROM silver.orders;
+
+-- Order Items
+SELECT
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN quantity <= 0 THEN 1 ELSE 0 END) AS invalid_quantity,
+    SUM(CASE WHEN list_price <= 0 THEN 1 ELSE 0 END) AS invalid_list_price,
+    SUM(CASE WHEN discount < 0 OR discount > 1 THEN 1 ELSE 0 END) AS invalid_discount,
+    SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS missing_order_id,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS missing_product_id
+FROM silver.order_items;
+
+-- Products
+SELECT
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS missing_product_name,
+    SUM(CASE WHEN brand_id IS NULL THEN 1 ELSE 0 END) AS missing_brand_id,
+    SUM(CASE WHEN category_id IS NULL THEN 1 ELSE 0 END) AS missing_category_id,
+    SUM(CASE WHEN list_price < 0 THEN 1 ELSE 0 END) AS negative_list_price
+FROM silver.products;
+
+-- Stocks
+SELECT
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS missing_store_id,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS missing_product_id,
+    SUM(CASE WHEN quantity < 0 THEN 1 ELSE 0 END) AS invalid_quantity
+FROM silver.stocks;
+
+-- Staffs
+SELECT
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS missing_email,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS missing_store_id
+FROM silver.staffs;
+
+-- Stores
+SELECT
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN store_name IS NULL THEN 1 ELSE 0 END) AS missing_store_name,
+    SUM(CASE WHEN phone IS NULL THEN 1 ELSE 0 END) AS missing_phone,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS missing_email
+FROM silver.stores;
