@@ -118,7 +118,8 @@ BEGIN
             oi.product_id,
             CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END,
             CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END,
-            CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END
+            CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END,
+            line_total DECIMAL(18,2) NULL
         FROM bronze.order_items oi
         WHERE oi.order_id IN (SELECT order_id FROM silver.orders)
           AND oi.product_id IN (SELECT product_id FROM bronze.products);
