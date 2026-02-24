@@ -3,10 +3,10 @@
 DDL Script: Gold Layer (Business-Ready)
 ===============================================================================
 Purpose:
-    This script creates views for the Gold layer in the data warehouse. 
+    This script creates views for the Gold layer in the data warehouse.
     The Gold layer represents the final dimension and fact tables (Star Schema)
 
-    Each view performs transformations and combines data from the Silver layer 
+    Each view performs transformations and combines data from the Silver layer
     to produce a clean, enriched, and business-ready dataset.
 
 Usage:
@@ -14,143 +14,131 @@ Usage:
 ===============================================================================
 */
 
--- =============================================================================
--- Dimension: Customers
--- =============================================================================
-IF OBJECT_ID('gold.dim_customers', 'V') IS NOT NULL DROP VIEW gold.dim_customers;
+-- Ensure gold schema exists
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'gold')
+BEGIN
+    EXEC('CREATE SCHEMA gold');
+END
 GO
 
-CREATE VIEW gold.dim_customers AS
+
+-- =============================================================================
+-- Create Dimension: gold.dim_customers
+-- =============================================================================
+CREATE OR ALTER VIEW gold.dim_customers AS
 SELECT
-    customer_id,
-    first_name,
-    last_name,
-    CONCAT(first_name, ' ', last_name) AS full_name,
-    phone,
-    email,
-    street,
-    city,
-    state,
-    zip_code
-FROM silver.customers;
+    ROW_NUMBER() OVER (ORDER BY c.customer_id) AS customer_key, -- Surrogate key
+    c.customer_id,
+    CONCAT(c.first_name,' ',c.last_name) AS full_name,
+    c.first_name,
+    c.last_name,
+    c.phone,
+    c.email,
+    c.street,
+    c.city,
+    c.state,
+    c.zip_code
+FROM silver.customers c;
 GO
 
--- =============================================================================
--- Dimension: Products (Flattened with Brands and Categories)
--- =============================================================================
-IF OBJECT_ID('gold.dim_products', 'V') IS NOT NULL DROP VIEW gold.dim_products;
-GO
 
-CREATE VIEW gold.dim_products AS
+-- =============================================================================
+-- Create Dimension: gold.dim_products
+-- =============================================================================
+CREATE OR ALTER VIEW gold.dim_products AS
 SELECT
+    ROW_NUMBER() OVER (ORDER BY p.product_id) AS product_key, -- Surrogate key
     p.product_id,
     p.product_name,
+    b.brand_name,
+    c.category_name,
     p.model_year,
-    p.list_price,
-    b.brand_name,    -- From brands
-    c.category_name  -- From categories
+    p.list_price
 FROM silver.products p
-LEFT JOIN silver.brands b ON p.brand_id = b.brand_id
-LEFT JOIN silver.categories c ON p.category_id = c.category_id;
+LEFT JOIN silver.brands b
+    ON p.brand_id = b.brand_id
+LEFT JOIN silver.categories c
+    ON p.category_id = c.category_id;
 GO
 
--- =============================================================================
--- Dimension: Stores
--- =============================================================================
-IF OBJECT_ID('gold.dim_stores', 'V') IS NOT NULL DROP VIEW gold.dim_stores;
-GO
 
-CREATE VIEW gold.dim_stores AS
+-- =============================================================================
+-- Create Dimension: gold.dim_stores
+-- =============================================================================
+CREATE OR ALTER VIEW gold.dim_stores AS
 SELECT
-    store_id,
-    store_name,
-    phone,
-    email,
-    city,
-    state
-FROM silver.stores;
+    ROW_NUMBER() OVER (ORDER BY s.store_id) AS store_key,
+    s.store_id,
+    s.store_name,
+    s.phone,
+    s.email,
+    s.street,
+    s.city,
+    s.state,
+    s.zip_code
+FROM silver.stores s;
 GO
 
--- =============================================================================
--- Dimension: Staffs
--- =============================================================================
-IF OBJECT_ID('gold.dim_staffs', 'V') IS NOT NULL DROP VIEW gold.dim_staffs;
-GO
 
-CREATE VIEW gold.dim_staffs AS
+-- =============================================================================
+-- Create Dimension: gold.dim_staffs
+-- =============================================================================
+CREATE OR ALTER VIEW gold.dim_staffs AS
 SELECT
-    staff_id,
-    first_name,
-    last_name,
-    CONCAT(first_name, ' ', last_name) AS full_name,
-    email,
-    active
-FROM silver.staffs;
+    ROW_NUMBER() OVER (ORDER BY st.staff_id) AS staff_key,
+    st.staff_id,
+    CONCAT(st.first_name,' ',st.last_name) AS staff_name,
+    st.email,
+    st.phone,
+    st.active,
+    st.store_id,
+    st.manager_id
+FROM silver.staffs st;
 GO
 
--- =============================================================================
--- Fact Table: Sales
--- =============================================================================
-IF OBJECT_ID('gold.fact_sales', 'V') IS NOT NULL DROP VIEW gold.fact_sales;
-GO
 
-CREATE VIEW gold.fact_sales AS
+-- =============================================================================
+-- Create Fact Table: gold.fact_sales
+-- =============================================================================
+CREATE OR ALTER VIEW gold.fact_sales AS
 SELECT
     o.order_id,
-    o.customer_id,
-    oi.product_id,
-    o.store_id,
-    o.staff_id,
+    dp.product_key,
+    dc.customer_key,
+    ds.store_key,
+    df.staff_key,
     o.order_date,
+    o.required_date,
+    o.shipped_date,
     oi.quantity,
     oi.list_price AS unit_price,
     oi.discount,
-    oi.line_total AS sales_amount  -- Pre-calculated in Silver for consistency
+    oi.line_total AS sales_amount
 FROM silver.orders o
-INNER JOIN silver.order_items oi ON o.order_id = oi.order_id;
+JOIN silver.order_items oi
+    ON o.order_id = oi.order_id
+JOIN gold.dim_products dp
+    ON oi.product_id = dp.product_id
+JOIN gold.dim_customers dc
+    ON o.customer_id = dc.customer_id
+JOIN gold.dim_stores ds
+    ON o.store_id = ds.store_id
+JOIN gold.dim_staffs df
+    ON o.staff_id = df.staff_id;
 GO
+
 
 -- =============================================================================
--- Fact Table: Stocks
+-- Create Fact Table: gold.fact_stocks
 -- =============================================================================
-IF OBJECT_ID('gold.fact_stocks', 'V') IS NOT NULL DROP VIEW gold.fact_stocks;
-GO
-
-CREATE VIEW gold.fact_stocks AS
+CREATE OR ALTER VIEW gold.fact_stocks AS
 SELECT
-    store_id,
-    product_id,
-    quantity
-FROM silver.stocks;
+    dp.product_key,
+    ds.store_key,
+    st.quantity
+FROM silver.stocks st
+JOIN gold.dim_products dp
+    ON st.product_id = dp.product_id
+JOIN gold.dim_stores ds
+    ON st.store_id = ds.store_id;
 GO
-
-
--- Silver Layer: order_items transformation
-
-TRUNCATE TABLE silver.order_items;
-
-INSERT INTO silver.order_items
-(
-    order_id,
-    item_id,
-    product_id,
-    quantity,
-    list_price,
-    discount,
-    line_total   -- NEW column
-)
-SELECT
-    oi.order_id,
-    oi.item_id,
-    oi.product_id,
-    CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END,
-    CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END,
-    CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END,
-    -- Calculate line_total during Silver load
-    (CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END *
-     CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END *
-     (1 - CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END)) AS line_total
-FROM bronze.order_items oi;
-
-
-
