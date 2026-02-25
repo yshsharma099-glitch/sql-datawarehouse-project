@@ -1,0 +1,18 @@
+/*
+=============================================================
+Monthly Performance Analysis
+=============================================================
+Purpose:
+    Analyze business growth trends over time.
+=============================================================
+*/
+
+SELECT
+    DATETRUNC(month, order_date) month,
+    SUM(sales_amount) revenue,
+    SUM(quantity) quantity
+FROM analytics.fact_sales
+GROUP BY DATETRUNC(month, order_date)
+ORDER BY month;
+
+--This is used for: Trend detection, Seasonality analysis, Sales forecasting
