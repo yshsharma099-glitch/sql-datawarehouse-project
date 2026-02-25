@@ -46,3 +46,16 @@ Schema Setup: Execute DDL scripts to create Bronze, Silver, and Gold schemas.
 Data Ingestion: Load raw data into Bronze tables.
 Silver Load: Run silver.load_silver stored procedure to clean and standardize data.
 Gold Layer: Run Gold DDL scripts to generate reporting-ready views.
+
+🛠️ Tech Stack
+
+Database: SQL Server (T-SQL)
+Architecture: Medallion (Bronze → Silver → Gold)
+Modeling: Dimensional Modeling (Star Schema)
+
+Conclusion :
+
+This project demonstrates end-to-end expertise in data engineering and analytics:
+ETL pipeline and Gold layer star schema for BI reporting.
+In-depth EDA and KPI calculation.
+Actionable business insights with clear recommendations.
