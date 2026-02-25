@@ -1,0 +1,23 @@
+=============================================================
+Database Exploration
+=============================================================
+Purpose:
+    Understand the structure of the analytics database.
+    This is the first step in Exploratory Data Analysis.
+=============================================================
+*/
+
+SELECT 
+    TABLE_SCHEMA,
+    TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'analytics';
+
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'fact_sales';
+
+
+/*This helps verify that the Tables are loaded correctly,Columns are correct and Data types matches the warehouse*/ 
