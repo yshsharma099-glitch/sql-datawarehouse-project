@@ -1,0 +1,40 @@
+CREATE DATABASE BikestoreAnalytics;
+GO
+
+USE BikestoreAnalytics;
+GO
+
+CREATE SCHEMA analytics;
+
+/*
+=============================================================
+Create Analytics Tables (Mirror Gold Layer)
+=============================================================
+Purpose:
+    Copy the curated business-ready data from the Gold layer
+    into physical tables for faster analytics queries.
+
+Reason:
+    Views are slower for heavy analysis and ML workloads.
+    Therefore we materialize them as tables here.
+=============================================================
+*/
+
+SELECT * INTO analytics.dim_customers
+FROM BikestoreDW.gold.dim_customers;
+
+SELECT * INTO analytics.dim_products
+FROM BikestoreDW.gold.dim_products;
+
+SELECT * INTO analytics.dim_stores
+FROM BikestoreDW.gold.dim_stores;
+
+SELECT * INTO analytics.dim_staffs
+FROM BikestoreDW.gold.dim_staffs;
+
+SELECT * INTO analytics.fact_sales
+FROM BikestoreDW.gold.fact_sales;
+
+SELECT * INTO analytics.fact_stocks
+FROM BikestoreDW.gold.fact_stocks;
+GO
