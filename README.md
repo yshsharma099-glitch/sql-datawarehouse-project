@@ -1,4 +1,4 @@
-🚴‍♂️ BikeStores Data Warehouse Project
+🚴‍♂️ Full End to End BikeStores Data Warehouse Project + EDA Advance Analytics
 
 📌 Project Overview
 This project demonstrates the end-to-end transformation of raw retail data into a business-ready Star Schema using the Medallion Architecture (Bronze → Silver → Gold). The goal was to take "dirty" source data and create a high-performance environment for BI reporting and advanced analytics.
