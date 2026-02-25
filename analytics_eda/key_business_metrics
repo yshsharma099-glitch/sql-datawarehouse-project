@@ -1,0 +1,18 @@
+/*
+=============================================================
+Key Business Metrics
+=============================================================
+Purpose:
+    Measure overall business performance.
+=============================================================
+*/
+
+SELECT 'Total Sales' metric, SUM(sales_amount) value FROM analytics.fact_sales
+UNION ALL
+SELECT 'Total Orders', COUNT(DISTINCT order_id) FROM analytics.fact_sales
+UNION ALL
+SELECT 'Total Quantity', SUM(quantity) FROM analytics.fact_sales
+UNION ALL
+SELECT 'Total Customers', COUNT(*) FROM analytics.dim_customers
+UNION ALL
+SELECT 'Total Products', COUNT(*) FROM analytics.dim_products;
