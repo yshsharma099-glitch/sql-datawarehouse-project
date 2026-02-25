@@ -1,0 +1,25 @@
+/*
+=============================================================
+Dimension Exploration
+=============================================================
+Purpose:
+    Explore categorical data used for business insights.
+=============================================================
+*/
+
+-- Product Categories
+SELECT DISTINCT category_name
+FROM analytics.dim_products
+ORDER BY category_name;
+
+-- Brands
+SELECT DISTINCT brand_name
+FROM analytics.dim_products
+ORDER BY brand_name;
+
+-- Store Locations
+SELECT DISTINCT city, state
+FROM analytics.dim_stores
+ORDER BY state;
+
+/* This helps us to understand Market distribution,Product segmentation and Store geography */ 
