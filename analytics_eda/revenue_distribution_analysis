@@ -1,0 +1,33 @@
+/*
+=============================================================
+Revenue Distribution Analysis
+=============================================================
+Purpose:
+    Identify which business segments generate the most revenue.
+=============================================================
+*/
+
+-- Revenue by Category
+SELECT
+    p.category_name,
+    SUM(f.sales_amount) revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.category_name
+ORDER BY revenue DESC;
+
+
+-- Revenue by Store
+SELECT
+    s.store_name,
+    SUM(f.sales_amount) total_sales
+FROM analytics.fact_sales f
+JOIN analytics.dim_stores s
+ON f.store_key = s.store_key
+GROUP BY s.store_name
+ORDER BY total_sales DESC;
+
+/* 
+    This is used to identify top performing product or categories and Best performing stores
+*/
