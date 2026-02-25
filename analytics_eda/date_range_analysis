@@ -1,0 +1,14 @@
+/*
+=============================================================
+Date Range Analysis
+=============================================================
+Purpose:
+    Understand the time coverage of the dataset.
+=============================================================
+*/
+
+SELECT
+    MIN(order_date) AS first_order,
+    MAX(order_date) AS last_order,
+    DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS order_range_months
+FROM analytics.fact_sales;
