@@ -1,0 +1,29 @@
+/*
+=============================================================
+Product Ranking Analysis
+=============================================================
+Purpose:
+    Identify best-selling and worst-performing products.
+=============================================================
+*/
+
+-- Top Products
+SELECT TOP 10
+    p.product_name,
+    SUM(f.sales_amount) revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.product_name
+ORDER BY revenue DESC;
+
+
+-- Worst Performing Products
+SELECT TOP 10
+    p.product_name,
+    SUM(f.sales_amount) revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.product_name
+ORDER BY revenue;
