@@ -30,3 +30,5 @@ CASE
     WHEN total_spending > 1000 THEN 'Mid Value'
     ELSE 'Low Value'
 END;
+
+--This can be used for Marketing targeting,Customer retention strategy.
