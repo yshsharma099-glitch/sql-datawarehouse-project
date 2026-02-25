@@ -1,0 +1,32 @@
+/*
+=============================================================
+Customer Segmentation
+=============================================================
+Purpose:
+    Identify high-value customers.
+=============================================================
+*/
+
+WITH customer_sales AS
+(
+SELECT
+    customer_key,
+    SUM(sales_amount) total_spending
+FROM analytics.fact_sales
+GROUP BY customer_key
+)
+
+SELECT
+    CASE
+        WHEN total_spending > 5000 THEN 'High Value'
+        WHEN total_spending > 1000 THEN 'Mid Value'
+        ELSE 'Low Value'
+    END segment,
+    COUNT(*) customers
+FROM customer_sales
+GROUP BY
+CASE
+    WHEN total_spending > 5000 THEN 'High Value'
+    WHEN total_spending > 1000 THEN 'Mid Value'
+    ELSE 'Low Value'
+END;
