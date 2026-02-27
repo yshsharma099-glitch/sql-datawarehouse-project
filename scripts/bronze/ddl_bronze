@@ -39,7 +39,7 @@ CREATE TABLE bronze.order_items (
     product_id INT,
     quantity INT,
     list_price DECIMAL(10,2),
-    discount DECIMAL(10,2)  
+    discount DECIMAL(10,2)
 );
 
 IF OBJECT_ID('bronze.products','U') IS NOT NULL DROP TABLE bronze.products;
@@ -49,7 +49,7 @@ CREATE TABLE bronze.products (
     brand_id INT,
     category_id INT,
     model_year INT,
-    list_price DECIMAL(10,2)  
+    list_price DECIMAL(10,2)
 );
 
 IF OBJECT_ID('bronze.brands','U') IS NOT NULL DROP TABLE bronze.brands;
@@ -85,7 +85,7 @@ CREATE TABLE bronze.staffs (
     phone NVARCHAR(50),
     active INT,
     store_id INT,
-    manager_id VARCHAR(50)  
+    manager_id VARCHAR(50)
 );
 GO
 
@@ -93,5 +93,11 @@ IF OBJECT_ID('bronze.stocks','U') IS NOT NULL DROP TABLE bronze.stocks;
 CREATE TABLE bronze.stocks (
     store_id INT,
     product_id INT,
-    quantity INT 
+    quantity INT
 );
+
+ALTER TABLE bronze.customers
+ADD cst_create_date DATE DEFAULT GETDATE() WITH VALUES;
+
+
+
