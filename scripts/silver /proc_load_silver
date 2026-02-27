@@ -60,7 +60,7 @@ BEGIN
             SELECT *,
                    ROW_NUMBER() OVER (
                        PARTITION BY customer_id 
-                       ORDER BY created_date
+                       ORDER BY cst_create_date
                    ) rn
             FROM bronze.customers
             WHERE customer_id IS NOT NULL
