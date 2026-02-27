@@ -8,7 +8,7 @@ BEGIN
 
     PRINT '========================================';
     PRINT 'Starting Silver Layer Load';
-    PRINT 'Batch Start Time: ' + CAST(@batch_start_time AS VARCHAR);
+    PRINT 'Batch Start Time: ' + CONVERT(VARCHAR(30), @batch_start_time, 120);
     PRINT '========================================';
 
     BEGIN TRY
@@ -23,8 +23,8 @@ BEGIN
                 table_name NVARCHAR(50),
                 record_id NVARCHAR(50),
                 error_type NVARCHAR(100),
-                error_description NVARCHAR(MAX),
-                created_at DATETIME DEFAULT GETDATE()
+                error_description NVARCHAR(MAX)
+                -- created_at removed for compatibility
             );
         END
 
@@ -50,7 +50,7 @@ BEGIN
             customer_id,
             UPPER(TRIM(first_name)),
             UPPER(TRIM(last_name)),
-            NULLIF(TRIM(phone),''),
+            NULLIF(TRIM(phone), ''),
             LOWER(TRIM(email)),
             TRIM(street),
             TRIM(city),
@@ -58,7 +58,10 @@ BEGIN
             TRIM(zip_code)
         FROM (
             SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id) rn
+                   ROW_NUMBER() OVER (
+                       PARTITION BY customer_id 
+                       ORDER BY created_date
+                   ) rn
             FROM bronze.customers
             WHERE customer_id IS NOT NULL
         ) t
@@ -90,10 +93,9 @@ BEGIN
             TRY_CONVERT(DATE,o.order_date),
             TRY_CONVERT(DATE,o.required_date),
             TRY_CONVERT(DATE,o.shipped_date),
-            TRY_CONVERT(INT,NULLIF(REPLACE(o.store_id,'NULL',''),'')),
-            TRY_CONVERT(INT,NULLIF(REPLACE(o.staff_id,'NULL',''),''))
-        FROM bronze.orders o
-        WHERE o.customer_id IN (SELECT customer_id FROM silver.customers);
+            TRY_CONVERT(INT,o.store_id),
+            TRY_CONVERT(INT,o.staff_id)
+        FROM bronze.orders o;
 
         PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
@@ -118,11 +120,8 @@ BEGIN
             oi.product_id,
             CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END,
             CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END,
-            CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END
-            
-        FROM bronze.order_items oi
-        WHERE oi.order_id IN (SELECT order_id FROM silver.orders)
-          AND oi.product_id IN (SELECT product_id FROM bronze.products);
+            COALESCE(CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END,0)
+        FROM bronze.order_items oi;
 
         PRINT 'Order Items Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
@@ -144,8 +143,8 @@ BEGIN
         SELECT
             p.product_id,
             TRIM(p.product_name),
-            TRY_CONVERT(INT,NULLIF(REPLACE(p.brand_id,'NULL',''),'')),
-            TRY_CONVERT(INT,NULLIF(REPLACE(p.category_id,'NULL',''),'')),
+            TRY_CONVERT(INT,p.brand_id),
+            TRY_CONVERT(INT,p.category_id),
             CASE WHEN p.model_year < 1900 OR p.model_year > YEAR(GETDATE()) THEN NULL ELSE p.model_year END,
             CASE WHEN p.list_price < 0 THEN ABS(p.list_price) ELSE p.list_price END
         FROM bronze.products p;
@@ -193,8 +192,8 @@ BEGIN
             LOWER(s.email),
             NULLIF(TRIM(s.phone),''),
             CASE WHEN s.active NOT IN (0,1) THEN 1 ELSE s.active END,
-            TRY_CONVERT(INT,NULLIF(REPLACE(s.store_id,'NULL',''),'')),
-            TRY_CONVERT(INT,NULLIF(REPLACE(s.manager_id,'NULL',''),''))
+            TRY_CONVERT(INT,s.store_id),
+            TRY_CONVERT(INT,s.manager_id)
         FROM bronze.staffs s;
 
         PRINT 'Staffs Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -242,12 +241,10 @@ BEGIN
             quantity
         )
         SELECT
-            TRY_CONVERT(INT,NULLIF(REPLACE(store_id,'NULL',''),'')),
-            TRY_CONVERT(INT,NULLIF(REPLACE(product_id,'NULL',''),'')),
+            TRY_CONVERT(INT,store_id),
+            TRY_CONVERT(INT,product_id),
             CASE WHEN quantity < 0 THEN 0 ELSE quantity END
-        FROM bronze.stocks
-        WHERE store_id IN (SELECT store_id FROM silver.stores)
-          AND product_id IN (SELECT product_id FROM silver.products);
+        FROM bronze.stocks;
 
         PRINT 'Stocks Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
@@ -261,12 +258,17 @@ BEGIN
 
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+        -- Log error without 'created_at' to avoid column issues
+        INSERT INTO silver.etl_errors (table_name, error_type, error_description)
+        VALUES ('silver.load_silver', 'Procedure Failure', ERROR_MESSAGE());
+
         PRINT '========================================';
-        PRINT 'ERROR IN SILVER LOAD';
-        PRINT ERROR_MESSAGE();
+        PRINT 'ERROR IN SILVER LOAD: ' + ERROR_MESSAGE();
         PRINT '========================================';
-    END CATCH
+    END CATCH;
 
 END;
 GO
+
