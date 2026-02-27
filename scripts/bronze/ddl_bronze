@@ -15,8 +15,7 @@ CREATE TABLE bronze.customers (
     street NVARCHAR(100),
     city NVARCHAR(50),
     state NVARCHAR(50),
-    zip_code NVARCHAR(20),
-   created_date DATETIME DEFAULT GETDATE()  
+    zip_code NVARCHAR(20)
 
 );
 
@@ -29,8 +28,7 @@ CREATE TABLE bronze.orders (
     required_date VARCHAR(50),
     shipped_date VARCHAR(50),
     store_id INT,
-    staff_id INT,
-   created_date DATETIME DEFAULT GETDATE() 
+    staff_id INT
 );
 GO
 
@@ -41,8 +39,7 @@ CREATE TABLE bronze.order_items (
     product_id INT,
     quantity INT,
     list_price DECIMAL(10,2),
-    discount DECIMAL(10,2),
-   created_date DATETIME DEFAULT GETDATE()  
+    discount DECIMAL(10,2)  
 );
 
 IF OBJECT_ID('bronze.products','U') IS NOT NULL DROP TABLE bronze.products;
@@ -52,8 +49,7 @@ CREATE TABLE bronze.products (
     brand_id INT,
     category_id INT,
     model_year INT,
-    list_price DECIMAL(10,2),
-   created_date DATETIME DEFAULT GETDATE()   
+    list_price DECIMAL(10,2)  
 );
 
 IF OBJECT_ID('bronze.brands','U') IS NOT NULL DROP TABLE bronze.brands;
@@ -89,8 +85,7 @@ CREATE TABLE bronze.staffs (
     phone NVARCHAR(50),
     active INT,
     store_id INT,
-    manager_id VARCHAR(50),
-   created_date DATETIME DEFAULT GETDATE()   
+    manager_id VARCHAR(50)  
 );
 GO
 
@@ -98,6 +93,5 @@ IF OBJECT_ID('bronze.stocks','U') IS NOT NULL DROP TABLE bronze.stocks;
 CREATE TABLE bronze.stocks (
     store_id INT,
     product_id INT,
-    quantity INT,
-   created_date DATETIME DEFAULT GETDATE()  
+    quantity INT 
 );
