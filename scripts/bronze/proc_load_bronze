@@ -1,191 +1,229 @@
 /*
 ===============================================================================
-Stored Procedure: Load Bronze Layer (BikeStore)
+Stored Procedure: Load Bronze Layer (BikeStore Source -> Bronze)
 ===============================================================================
-Usage:
-EXEC bronze.load_bronze;
+Script Purpose:
+    This stored procedure loads data into the 'bronze' schema from external CSV files. 
+    It performs the following actions:
+    - Truncates the bronze tables before loading data.
+    - Uses the `BULK INSERT` command to load data from CSV files to bronze tables.
+    - Tracks load duration for each table and the entire batch.
+
+Parameters:
+    None. This procedure does not accept any parameters or return values.
+
+Usage Example:
+    EXEC bronze.load_bronze;
 ===============================================================================
 */
 
-CREATE OR ALTER PROCEDURE bronze.load_bronze
-AS
+CREATE OR ALTER PROCEDURE bronze.load_bronze AS
 BEGIN
-
-    DECLARE 
-        @start_time DATETIME,
-        @end_time DATETIME,
-        @batch_start_time DATETIME,
-        @batch_end_time DATETIME,
-        @row_count INT;
+    DECLARE @start_time DATETIME, @end_time DATETIME;
+    DECLARE @batch_start_time DATETIME, @batch_end_time DATETIME;
 
     BEGIN TRY
-
         SET @batch_start_time = GETDATE();
 
-        PRINT '===========================================';
-        PRINT 'Loading Bronze Layer';
-        PRINT '===========================================';
+        PRINT '================================================';
+        PRINT 'Starting Bronze Layer Load';
+        PRINT '================================================';
 
-        /* CUSTOMERS */
+        ------------------------------------------
+        -- CRM / Core Tables
+        ------------------------------------------
+        PRINT '------------------------------------------------';
+        PRINT 'Loading Core Bronze Tables';
+        PRINT '------------------------------------------------';
+
+        -- Customers
         SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.customers';
         TRUNCATE TABLE bronze.customers;
 
+        PRINT '>> Inserting Data Into: bronze.customers';
         BULK INSERT bronze.customers
         FROM 'C:\Bikestore\customers.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2,
-            FIELDQUOTE='"',
-            KEEPNULLS
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.customers;
-        PRINT 'Customers Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* ORDERS */
+        -- Orders
         SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.orders';
         TRUNCATE TABLE bronze.orders;
 
+        PRINT '>> Inserting Data Into: bronze.orders';
         BULK INSERT bronze.orders
         FROM 'C:\Bikestore\orders.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2,
-            FIELDQUOTE='"',
-            KEEPNULLS
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.orders;
-        PRINT 'Orders Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* ORDER ITEMS */
+        -- Order Items
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.order_items';
         TRUNCATE TABLE bronze.order_items;
 
+        PRINT '>> Inserting Data Into: bronze.order_items';
         BULK INSERT bronze.order_items
         FROM 'C:\Bikestore\order_items.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.order_items;
-        PRINT 'Order Items Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* PRODUCTS */
+        -- Products
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.products';
         TRUNCATE TABLE bronze.products;
 
+        PRINT '>> Inserting Data Into: bronze.products';
         BULK INSERT bronze.products
         FROM 'C:\Bikestore\products.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.products;
-        PRINT 'Products Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* CATEGORIES */
+        -- Categories
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.categories';
         TRUNCATE TABLE bronze.categories;
 
+        PRINT '>> Inserting Data Into: bronze.categories';
         BULK INSERT bronze.categories
         FROM 'C:\Bikestore\categories.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.categories;
-        PRINT 'Categories Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* BRANDS */
+        -- Brands
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.brands';
         TRUNCATE TABLE bronze.brands;
 
+        PRINT '>> Inserting Data Into: bronze.brands';
         BULK INSERT bronze.brands
         FROM 'C:\Bikestore\brands.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.brands;
-        PRINT 'Brands Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* STAFFS */
+        -- Staffs
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.staffs';
         TRUNCATE TABLE bronze.staffs;
 
+        PRINT '>> Inserting Data Into: bronze.staffs';
         BULK INSERT bronze.staffs
         FROM 'C:\Bikestore\staffs.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2,
-            KEEPNULLS
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.staffs;
-        PRINT 'Staffs Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* STORES */
+        -- Stores
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.stores';
         TRUNCATE TABLE bronze.stores;
 
+        PRINT '>> Inserting Data Into: bronze.stores';
         BULK INSERT bronze.stores
         FROM 'C:\Bikestore\stores.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
-        SELECT @row_count = COUNT(*) FROM bronze.stores;
-        PRINT 'Stores Loaded: ' + CAST(@row_count AS NVARCHAR);
-
-        /* STOCKS */
+        -- Stocks
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.stocks';
         TRUNCATE TABLE bronze.stocks;
 
+        PRINT '>> Inserting Data Into: bronze.stocks';
         BULK INSERT bronze.stocks
         FROM 'C:\Bikestore\stocks.csv'
         WITH (
-            FORMAT='CSV',
-            FIRSTROW=2
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            KEEPNULLS,
+            TABLOCK
         );
-
-        SELECT @row_count = COUNT(*) FROM bronze.stocks;
-        PRINT 'Stocks Loaded: ' + CAST(@row_count AS NVARCHAR);
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> -------------';
 
         SET @batch_end_time = GETDATE();
-
-        PRINT '===========================================';
-        PRINT 'Bronze Load Completed Successfully';
-        PRINT 'Total Time: ' + CAST(DATEDIFF(SECOND,@batch_start_time,@batch_end_time) AS NVARCHAR) + ' seconds';
-        PRINT '===========================================';
+        PRINT '================================================';
+        PRINT 'Bronze Layer Load Completed Successfully';
+        PRINT 'Total Load Duration: ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' seconds';
+        PRINT '================================================';
 
     END TRY
-
     BEGIN CATCH
-
-        PRINT '===========================================';
-        PRINT 'ERROR DURING BRONZE LOAD';
-        PRINT ERROR_MESSAGE();
-        PRINT '===========================================';
-
+        PRINT '================================================';
+        PRINT 'ERROR OCCURRED DURING BRONZE LOAD';
+        PRINT 'Error Message: ' + ERROR_MESSAGE();
+        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS NVARCHAR);
+        PRINT 'Error State: ' + CAST(ERROR_STATE() AS NVARCHAR);
+        PRINT '================================================';
     END CATCH
-
 END;
+GO
 
--- Checking the Loaded Data 
-
-SELECT 'customers', COUNT(*) FROM bronze.customers
-UNION ALL
-SELECT 'orders', COUNT(*) FROM bronze.orders
-UNION ALL
-SELECT 'order_items', COUNT(*) FROM bronze.order_items
-UNION ALL
-SELECT 'products', COUNT(*) FROM bronze.products
-UNION ALL
-SELECT 'categories', COUNT(*) FROM bronze.categories
-UNION ALL
-SELECT 'brands', COUNT(*) FROM bronze.brands
-UNION ALL
-SELECT 'staffs', COUNT(*) FROM bronze.staffs
-UNION ALL
-SELECT 'stores', COUNT(*) FROM bronze.stores
-UNION ALL
-SELECT 'stocks', COUNT(*) FROM bronze.stocks;
+-- Execute Procedure
+EXEC bronze.load_bronze;
