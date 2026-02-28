@@ -96,7 +96,8 @@ BEGIN
             TRY_CONVERT(DATE, o.shipped_date)AS shipped_date,
             TRY_CONVERT(INT, o.store_id)AS store_id,  
             TRY_CONVERT(INT, o.staff_id)AS staff_id
-        FROM bronze.orders o;
+        FROM bronze.orders o
+        WHERE o.order_date IS NOT NULL;
 
         PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
