@@ -19,8 +19,6 @@ SELECT
     ROW_NUMBER() OVER (ORDER BY c.customer_id) AS customer_key,
     c.customer_id,
     CONCAT(c.first_name,' ',c.last_name) AS full_name,
-    c.first_name,
-    c.last_name,
     c.phone,
     c.email,
     c.street,
@@ -142,4 +140,3 @@ LEFT JOIN gold.dim_products dp
 LEFT JOIN gold.dim_stores ds
     ON st.store_id = ds.store_id;
 GO
-
