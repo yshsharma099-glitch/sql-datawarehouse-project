@@ -1,10 +1,19 @@
+/* =========================================================
+   CREATE ANALYTICS DATABASE 
+   ========================================================= */
+IF DB_ID('BikestoreAnalytics') IS NULL
 CREATE DATABASE BikestoreAnalytics;
 GO
 
 USE BikestoreAnalytics;
 GO
 
-CREATE SCHEMA analytics;
+/* =========================================================
+   CREATE SCHEMA
+   ========================================================= */
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'analytics')
+EXEC('CREATE SCHEMA analytics');
+GO
 
 /*
 =============================================================
@@ -20,21 +29,128 @@ Reason:
 =============================================================
 */
 
-SELECT * INTO analytics.dim_customers
-FROM BikestoreDW.gold.dim_customers;
+/* =========================================================
+   DIM CUSTOMERS
+   ========================================================= */
 
-SELECT * INTO analytics.dim_products
-FROM BikestoreDW.gold.dim_products;
+IF OBJECT_ID('analytics.dim_customers','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.dim_customers
+    FROM BikestoreDW.gold.dim_customers;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.dim_customers;
 
-SELECT * INTO analytics.dim_stores
-FROM BikestoreDW.gold.dim_stores;
-
-SELECT * INTO analytics.dim_staffs
-FROM BikestoreDW.gold.dim_staffs;
-
-SELECT * INTO analytics.fact_sales
-FROM BikestoreDW.gold.fact_sales;
-
-SELECT * INTO analytics.fact_stocks
-FROM BikestoreDW.gold.fact_stocks;
+    INSERT INTO analytics.dim_customers
+    SELECT *
+    FROM BikestoreDW.gold.dim_customers;
+END
 GO
+
+
+/* =========================================================
+   DIM PRODUCTS
+   ========================================================= */
+
+IF OBJECT_ID('analytics.dim_products','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.dim_products
+    FROM BikestoreDW.gold.dim_products;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.dim_products;
+
+    INSERT INTO analytics.dim_products
+    SELECT *
+    FROM BikestoreDW.gold.dim_products;
+END
+GO
+
+
+/* =========================================================
+   DIM STORES
+   ========================================================= */
+
+IF OBJECT_ID('analytics.dim_stores','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.dim_stores
+    FROM BikestoreDW.gold.dim_stores;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.dim_stores;
+
+    INSERT INTO analytics.dim_stores
+    SELECT *
+    FROM BikestoreDW.gold.dim_stores;
+END
+GO
+
+
+/* =========================================================
+   DIM STAFFS
+   ========================================================= */
+
+IF OBJECT_ID('analytics.dim_staffs','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.dim_staffs
+    FROM BikestoreDW.gold.dim_staffs;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.dim_staffs;
+
+    INSERT INTO analytics.dim_staffs
+    SELECT *
+    FROM BikestoreDW.gold.dim_staffs;
+END
+GO
+
+
+/* =========================================================
+   FACT SALES
+   ========================================================= */
+
+IF OBJECT_ID('analytics.fact_sales','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.fact_sales
+    FROM BikestoreDW.gold.fact_sales;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.fact_sales;
+
+    INSERT INTO analytics.fact_sales
+    SELECT *
+    FROM BikestoreDW.gold.fact_sales;
+END
+GO
+
+
+/* =========================================================
+   FACT STOCKS
+   ========================================================= */
+
+IF OBJECT_ID('analytics.fact_stocks','U') IS NULL
+BEGIN
+    SELECT *
+    INTO analytics.fact_stocks
+    FROM BikestoreDW.gold.fact_stocks;
+END
+ELSE
+BEGIN
+    TRUNCATE TABLE analytics.fact_stocks;
+
+    INSERT INTO analytics.fact_stocks
+    SELECT *
+    FROM BikestoreDW.gold.fact_stocks;
+END
+GO
+
