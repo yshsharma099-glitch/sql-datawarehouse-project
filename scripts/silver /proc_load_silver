@@ -45,25 +45,26 @@ BEGIN
             city,
             state,
             zip_code
-        )
-        SELECT
-            customer_id,
-            UPPER(TRIM(first_name)),
-            UPPER(TRIM(last_name)),
-            NULLIF(TRIM(phone), ''),
-            LOWER(TRIM(email)),
-            TRIM(street),
-            TRIM(city),
-            UPPER(TRIM(state)),
-            TRIM(zip_code)
-        FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY customer_id 
-                       ORDER BY cst_create_date
-                   ) rn
-            FROM bronze.customers
-            WHERE customer_id IS NOT NULL
+         )
+            SELECT
+        customer_id,
+            CONCAT(UPPER(LEFT(first_name,1)), LOWER(SUBSTRING(first_name,2,LEN(first_name)))
+        ) AS first_name,
+            CONCAT(UPPER(LEFT(last_name,1)), LOWER(SUBSTRING(last_name,2,LEN(last_name)))
+        ) AS last_name,
+            NULLIF(TRIM(phone), '') AS phone,
+            LOWER(TRIM(email)) AS email,
+            TRIM(street) AS street,
+            TRIM(city) AS city,
+            UPPER(TRIM(state)) AS state,
+            TRIM(zip_code) AS zip_code
+        FROM(SELECT *,
+            ROW_NUMBER() OVER (
+                PARTITION BY customer_id 
+                ORDER BY cst_create_date
+            ) rn
+        FROM bronze.customers
+        WHERE customer_id IS NOT NULL
         ) t
         WHERE rn = 1;
 
@@ -86,15 +87,15 @@ BEGIN
             store_id,
             staff_id
         )
-        SELECT
-            o.order_id,
-            o.customer_id,
-            CASE WHEN o.order_status NOT IN (1,2,3,4) THEN 1 ELSE o.order_status END,
-            TRY_CONVERT(DATE,o.order_date),
-            TRY_CONVERT(DATE,o.required_date),
-            TRY_CONVERT(DATE,o.shipped_date),
-            TRY_CONVERT(INT,o.store_id),
-            TRY_CONVERT(INT,o.staff_id)
+       SELECT
+        o.order_id,
+        o.customer_id,
+        CASE WHEN o.order_status NOT IN (1,2,3,4) THEN 1 ELSE o.order_status END AS order_status,
+            TRY_CONVERT(DATE, o.order_date) AS order_date,
+            TRY_CONVERT(DATE, o.required_date) AS required_date,
+            TRY_CONVERT(DATE, o.shipped_date)AS shipped_date,
+            TRY_CONVERT(INT, o.store_id)AS store_id,  
+            TRY_CONVERT(INT, o.staff_id)AS staff_id
         FROM bronze.orders o;
 
         PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -118,9 +119,9 @@ BEGIN
             oi.order_id,
             oi.item_id,
             oi.product_id,
-            CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END,
-            CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END,
-            COALESCE(CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END,0)
+            CASE WHEN oi.quantity <= 0 THEN 1 ELSE oi.quantity END AS quantity,
+            CASE WHEN oi.list_price <= 0 THEN ABS(oi.list_price) ELSE oi.list_price END AS list_price,
+            COALESCE(CASE WHEN oi.discount < 0 OR oi.discount > 1 THEN 0 ELSE oi.discount END,0) AS discount
         FROM bronze.order_items oi;
 
         PRINT 'Order Items Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -140,13 +141,13 @@ BEGIN
             model_year,
             list_price
         )
-        SELECT
+              SELECT
             p.product_id,
-            TRIM(p.product_name),
-            TRY_CONVERT(INT,p.brand_id),
-            TRY_CONVERT(INT,p.category_id),
-            CASE WHEN p.model_year < 1900 OR p.model_year > YEAR(GETDATE()) THEN NULL ELSE p.model_year END,
-            CASE WHEN p.list_price < 0 THEN ABS(p.list_price) ELSE p.list_price END
+            TRIM(p.product_name) AS product_name,
+            TRY_CONVERT(INT,p.brand_id) AS brand_id ,
+            TRY_CONVERT(INT,p.category_id) AS category_id, 
+            CASE WHEN p.model_year < 1900 OR p.model_year > YEAR(GETDATE()) THEN NULL ELSE p.model_year END AS model_year,
+            CASE WHEN p.list_price < 0 THEN ABS(p.list_price) ELSE p.list_price END AS list_price
         FROM bronze.products p;
 
         PRINT 'Products Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -155,17 +156,25 @@ BEGIN
         CATEGORIES & BRANDS CLEANING
         ====================================================== */
         PRINT 'Loading silver.categories...';
+
         TRUNCATE TABLE silver.categories;
         INSERT INTO silver.categories(category_id, category_name)
-        SELECT category_id, TRIM(category_name)
+        SELECT 
+            category_id, 
+            TRIM(category_name) AS category_name
         FROM bronze.categories;
+
         PRINT 'Categories Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
         PRINT 'Loading silver.brands...';
+
         TRUNCATE TABLE silver.brands;
         INSERT INTO silver.brands(brand_id, brand_name)
-        SELECT brand_id, TRIM(brand_name)
+        SELECT 
+            brand_id, 
+            TRIM(brand_name) AS brand_name
         FROM bronze.brands;
+
         PRINT 'Brands Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
         /* =====================================================
@@ -187,13 +196,13 @@ BEGIN
         )
         SELECT
             s.staff_id,
-            TRIM(s.first_name),
-            TRIM(s.last_name),
-            LOWER(s.email),
-            NULLIF(TRIM(s.phone),''),
-            CASE WHEN s.active NOT IN (0,1) THEN 1 ELSE s.active END,
-            TRY_CONVERT(INT,s.store_id),
-            TRY_CONVERT(INT,s.manager_id)
+            TRIM(s.first_name) AS first_name,
+            TRIM(s.last_name) AS last_name ,
+            LOWER(s.email) AS email ,
+            NULLIF(TRIM(s.phone),'') AS phone,
+            CASE WHEN s.active NOT IN (0,1) THEN 1 ELSE s.active END AS active, 
+            TRY_CONVERT(INT,s.store_id) AS store_id,
+            TRY_CONVERT(INT,s.manager_id) AS manager_id
         FROM bronze.staffs s;
 
         PRINT 'Staffs Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -217,13 +226,16 @@ BEGIN
         )
         SELECT
             store_id,
-            TRIM(store_name),
-            NULLIF(TRIM(phone),''),
-            LOWER(TRIM(email)),
-            TRIM(street),
-            TRIM(city),
-            UPPER(TRIM(state)),
-            TRIM(zip_code)
+            TRIM(store_name) AS store_name,
+            CASE 
+                WHEN LEN(TRIM(phone)) > 10 THEN 'n/a'
+                ELSE NULLIF(TRIM(phone), '') 
+            END AS phone,
+            LOWER(TRIM(email)) AS email ,
+            TRIM(street) AS street,
+            TRIM(city) AS city,
+            UPPER(TRIM(state)) AS state,
+            TRIM(zip_code) AS zip_code
         FROM bronze.stores;
 
         PRINT 'Stores Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -241,9 +253,9 @@ BEGIN
             quantity
         )
         SELECT
-            TRY_CONVERT(INT,store_id),
-            TRY_CONVERT(INT,product_id),
-            CASE WHEN quantity < 0 THEN 0 ELSE quantity END
+            TRY_CONVERT(INT,store_id) AS store_id,
+            TRY_CONVERT(INT,product_id) AS product_id,
+            CASE WHEN quantity < 0 THEN 0 ELSE quantity END AS quantity
         FROM bronze.stocks;
 
         PRINT 'Stocks Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
@@ -271,4 +283,3 @@ BEGIN
 
 END;
 GO
-
