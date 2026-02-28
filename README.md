@@ -20,6 +20,7 @@ Data Cleaning: Trimmed whitespaces, normalized emails, standardized state codes.
 Data Integrity: Handled type mismatches using TRY_CONVERT and missing values with ISNULL.
 Business Logic: Pre-calculated line_total for all orders.
 Deduplication: Removed duplicate customer records using ROW_NUMBER().
+I created indexes on the join keys used in the fact table such as order_id, product_id, customer_id, store_id, and staff_id to optimize star schema joins.
 
 Gold Layer (Business-Ready)
 
