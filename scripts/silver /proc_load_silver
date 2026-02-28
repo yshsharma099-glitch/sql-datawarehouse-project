@@ -334,21 +334,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_products_categ
 CREATE INDEX idx_silver_products_category_id
 ON silver.products(category_id);
 
--- Staff
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_staffs_staff_id')
-CREATE INDEX idx_silver_staffs_staff_id
-ON silver.staffs(staff_id);
-
--- Stores
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_stores_store_id')
-CREATE INDEX idx_silver_stores_store_id
-ON silver.stores(store_id);
-
 -- Stocks
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_stocks_product_store')
 CREATE INDEX idx_silver_stocks_product_store
 ON silver.stocks(product_id, store_id);
 
---Date analysis 
-CREATE INDEX idx_sales_date_analysis
-ON silver.orders(order_date);
+-- Analytics
+CREATE INDEX idx_orders_analytics
+ON silver.orders(order_date, customer_id)
+INCLUDE(order_id, store_id, staff_id);
