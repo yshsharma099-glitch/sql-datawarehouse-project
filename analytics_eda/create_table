@@ -153,4 +153,3 @@ BEGIN
     FROM BikestoreDW.gold.fact_stocks;
 END
 GO
-
