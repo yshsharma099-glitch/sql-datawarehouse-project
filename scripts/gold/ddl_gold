@@ -2,19 +2,8 @@
 ===============================================================================
 DDL Script: Gold Layer (Business-Ready)
 ===============================================================================
-Purpose:
-    This script creates views for the Gold layer in the data warehouse.
-    The Gold layer represents the final dimension and fact tables (Star Schema)
-
-    Each view performs transformations and combines data from the Silver layer
-    to produce a clean, enriched, and business-ready dataset.
-
-Usage:
-    - These views can be queried directly for analytics and reporting.
-===============================================================================
 */
 
--- Ensure gold schema exists
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'gold')
 BEGIN
     EXEC('CREATE SCHEMA gold');
@@ -23,11 +12,11 @@ GO
 
 
 -- =============================================================================
--- Create Dimension: gold.dim_customers
+-- Dimension: Customers
 -- =============================================================================
 CREATE OR ALTER VIEW gold.dim_customers AS
 SELECT
-    ROW_NUMBER() OVER (ORDER BY c.customer_id) AS customer_key, -- Surrogate key
+    ROW_NUMBER() OVER (ORDER BY c.customer_id) AS customer_key,
     c.customer_id,
     CONCAT(c.first_name,' ',c.last_name) AS full_name,
     c.first_name,
@@ -43,11 +32,11 @@ GO
 
 
 -- =============================================================================
--- Create Dimension: gold.dim_products
+-- Dimension: Products
 -- =============================================================================
 CREATE OR ALTER VIEW gold.dim_products AS
 SELECT
-    ROW_NUMBER() OVER (ORDER BY p.product_id) AS product_key, -- Surrogate key
+    ROW_NUMBER() OVER (ORDER BY p.product_id) AS product_key,
     p.product_id,
     p.product_name,
     b.brand_name,
@@ -63,7 +52,7 @@ GO
 
 
 -- =============================================================================
--- Create Dimension: gold.dim_stores
+-- Dimension: Stores
 -- =============================================================================
 CREATE OR ALTER VIEW gold.dim_stores AS
 SELECT
@@ -81,7 +70,7 @@ GO
 
 
 -- =============================================================================
--- Create Dimension: gold.dim_staffs
+-- Dimension: Staffs
 -- =============================================================================
 CREATE OR ALTER VIEW gold.dim_staffs AS
 SELECT
@@ -90,7 +79,10 @@ SELECT
     CONCAT(st.first_name,' ',st.last_name) AS staff_name,
     st.email,
     st.phone,
-    st.active,
+    CASE 
+        WHEN st.active = 1 THEN 'Active'
+        ELSE 'Inactive'
+    END AS staff_status,
     st.store_id,
     st.manager_id
 FROM silver.staffs st;
@@ -98,11 +90,18 @@ GO
 
 
 -- =============================================================================
--- Create Fact Table: gold.fact_sales
+-- Fact Table: Sales
 -- =============================================================================
 CREATE OR ALTER VIEW gold.fact_sales AS
 SELECT
     o.order_id,
+    CASE 
+        WHEN o.order_status = 1 THEN 'Pending'
+        WHEN o.order_status = 2 THEN 'Processing'
+        WHEN o.order_status = 3 THEN 'Shipped'
+        WHEN o.order_status = 4 THEN 'Delivered'
+        ELSE 'Unknown'
+    END AS order_status,
     dp.product_key,
     dc.customer_key,
     ds.store_key,
@@ -113,23 +112,24 @@ SELECT
     oi.quantity,
     oi.list_price AS unit_price,
     oi.discount,
-    oi.line_total AS sales_amount
+    (oi.quantity * oi.list_price * (1 - oi.discount)) AS sales_amount
+
 FROM silver.orders o
 JOIN silver.order_items oi
     ON o.order_id = oi.order_id
-JOIN gold.dim_products dp
+LEFT JOIN gold.dim_products dp
     ON oi.product_id = dp.product_id
-JOIN gold.dim_customers dc
+LEFT JOIN gold.dim_customers dc
     ON o.customer_id = dc.customer_id
-JOIN gold.dim_stores ds
+LEFT JOIN gold.dim_stores ds
     ON o.store_id = ds.store_id
-JOIN gold.dim_staffs df
+LEFT JOIN gold.dim_staffs df
     ON o.staff_id = df.staff_id;
 GO
 
 
 -- =============================================================================
--- Create Fact Table: gold.fact_stocks
+-- Fact Table: Stocks
 -- =============================================================================
 CREATE OR ALTER VIEW gold.fact_stocks AS
 SELECT
@@ -137,8 +137,9 @@ SELECT
     ds.store_key,
     st.quantity
 FROM silver.stocks st
-JOIN gold.dim_products dp
+LEFT JOIN gold.dim_products dp
     ON st.product_id = dp.product_id
-JOIN gold.dim_stores ds
+LEFT JOIN gold.dim_stores ds
     ON st.store_id = ds.store_id;
 GO
+
