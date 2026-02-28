@@ -283,3 +283,71 @@ BEGIN
 
 END;
 GO
+
+/* =====================================================
+PERFORMANCE INDEXES FOR SILVER LAYER
+Improves joins between Silver -> Gold
+===================================================== */
+
+-- Customers
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_customers_customer_id')
+CREATE INDEX idx_silver_customers_customer_id
+ON silver.customers(customer_id);
+
+-- Orders
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_orders_order_id')
+CREATE INDEX idx_silver_orders_order_id
+ON silver.orders(order_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_orders_customer_id')
+CREATE INDEX idx_silver_orders_customer_id
+ON silver.orders(customer_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_orders_store_id')
+CREATE INDEX idx_silver_orders_store_id
+ON silver.orders(store_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_orders_staff_id')
+CREATE INDEX idx_silver_orders_staff_id
+ON silver.orders(staff_id);
+
+-- Order Items
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_order_items_order_id')
+CREATE INDEX idx_silver_order_items_order_id
+ON silver.order_items(order_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_order_items_product_id')
+CREATE INDEX idx_silver_order_items_product_id
+ON silver.order_items(product_id);
+
+-- Products
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_products_product_id')
+CREATE INDEX idx_silver_products_product_id
+ON silver.products(product_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_products_brand_id')
+CREATE INDEX idx_silver_products_brand_id
+ON silver.products(brand_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_products_category_id')
+CREATE INDEX idx_silver_products_category_id
+ON silver.products(category_id);
+
+-- Staff
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_staffs_staff_id')
+CREATE INDEX idx_silver_staffs_staff_id
+ON silver.staffs(staff_id);
+
+-- Stores
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_stores_store_id')
+CREATE INDEX idx_silver_stores_store_id
+ON silver.stores(store_id);
+
+-- Stocks
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_silver_stocks_product_store')
+CREATE INDEX idx_silver_stocks_product_store
+ON silver.stocks(product_id, store_id);
+
+--Date analysis 
+CREATE INDEX idx_sales_date_analysis
+ON silver.orders(order_date);
