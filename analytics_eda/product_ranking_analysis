@@ -27,3 +27,19 @@ JOIN analytics.dim_products p
 ON f.product_key = p.product_key
 GROUP BY p.product_name
 ORDER BY revenue;
+
+/* Running Revenue by Product Category */
+
+SELECT
+    dp.category_name,
+    fs.order_date,
+    SUM(fs.sales_amount) AS daily_revenue,
+    SUM(SUM(fs.sales_amount)) OVER (
+        PARTITION BY dp.category_name
+        ORDER BY fs.order_date
+    ) AS running_revenue
+FROM gold.fact_sales fs
+JOIN gold.dim_products dp
+    ON fs.product_key = dp.product_key
+GROUP BY
+  
