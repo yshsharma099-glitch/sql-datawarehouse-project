@@ -1,313 +1,206 @@
-/* 
+/*
 ===============================================================================
-Stored Procedure: Load Bronze Layer (BikeStore Source -> Bronze)
+DDL Script: Create Bronze Tables
 ===============================================================================
 Script Purpose:
-    - Loads data into 'bronze' schema from external CSV files.
-    - Uses staging only for 'customers' to avoid load errors.
-    - Truncates bronze tables before load.
-    - Tracks load duration for each table.
-    - Logs any errors during staging.
+    This script creates all tables in the 'bronze' schema as used in the 
+    bronze.load_bronze procedure.
+    Existing tables are dropped if they exist.
 ===============================================================================
 */
 
--- Create error log table if not exists
-IF OBJECT_ID('bronze.load_errors', 'U') IS NULL
-BEGIN
-    CREATE TABLE bronze.load_errors
-    (
-        table_name NVARCHAR(50),
-        row_number INT,
-        error_message NVARCHAR(500),
-        load_time DATETIME DEFAULT GETDATE()
-    );
-END
+-- ==========================================
+-- 1. Customers Table
+-- ==========================================
+IF OBJECT_ID('bronze.customers','U') IS NOT NULL
+    DROP TABLE bronze.customers;
 GO
 
-CREATE OR ALTER PROCEDURE bronze.load_bronze AS
-BEGIN
-    DECLARE @start_time DATETIME, @end_time DATETIME;
-    DECLARE @batch_start_time DATETIME, @batch_end_time DATETIME;
-
-    BEGIN TRY
-        SET @batch_start_time = GETDATE();
-
-        PRINT '================================================';
-        PRINT 'Starting Bronze Layer Load';
-        PRINT '================================================';
-
-        ------------------------------------------
-        -- Customers (with Staging)
-        ------------------------------------------
-        PRINT '------------------------------------------------';
-        PRINT 'Loading Core Bronze Table: customers (with staging)';
-        PRINT '------------------------------------------------';
-
-        -- 1a. Create staging table if not exists
-        IF OBJECT_ID('bronze.stg_customers','U') IS NOT NULL
-            TRUNCATE TABLE bronze.stg_customers;
-        ELSE
-        BEGIN
-            CREATE TABLE bronze.stg_customers
-            (
-                customer_id NVARCHAR(50),
-                first_name NVARCHAR(255),
-                last_name NVARCHAR(255),
-                phone NVARCHAR(50),
-                email NVARCHAR(255),
-                street NVARCHAR(255),
-                city NVARCHAR(100),
-                state NVARCHAR(100),
-                zip_code NVARCHAR(50)
-            );
-        END
-
-        -- 1b. Bulk load raw data into staging
-        PRINT '>> Bulk inserting raw data into staging';
-        BEGIN TRY
-            BULK INSERT bronze.stg_customers
-            FROM 'C:\Bikestore\customers.csv'
-            WITH (
-                FIRSTROW = 2,
-                FIELDTERMINATOR = ',',
-                FIELDQUOTE = '"',
-                KEEPNULLS,
-                TABLOCK
-            );
-        END TRY
-        BEGIN CATCH
-            PRINT '>> WARNING: Bulk insert to staging failed: ' + ERROR_MESSAGE();
-        END CATCH
-
-        -- 1c. Truncate bronze table before load
-        PRINT '>> Truncating Table: bronze.customers';
-        TRUNCATE TABLE bronze.customers;
-
-        -- 1d. Insert from staging with type-safe conversion
-        INSERT INTO bronze.customers
-        (
-            customer_id,
-            first_name,
-            last_name,
-            phone,
-            email,
-            street,
-            city,
-            state,
-            zip_code
-        )
-        SELECT
-            TRY_CAST(customer_id AS INT),
-            LEFT(first_name,50),
-            LEFT(last_name,50),
-            LEFT(phone,50),
-            LEFT(email,100),
-            LEFT(street,100),
-            LEFT(city,50),
-            LEFT(state,50),
-            LEFT(zip_code,20)
-        FROM bronze.stg_customers
-        WHERE TRY_CAST(customer_id AS INT) IS NOT NULL;
-
-        -- 1e. Log failed rows
-        INSERT INTO bronze.load_errors(table_name,row_number,error_message)
-        SELECT 
-            'customers',
-            ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS row_number,
-            'Invalid customer_id: ' + customer_id
-        FROM bronze.stg_customers
-        WHERE TRY_CAST(customer_id AS INT) IS NULL;
-
-        PRINT '>> Customers loaded successfully. Any errors logged in bronze.load_errors.';
-
-        ------------------------------------------
-        -- Orders
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.orders';
-        TRUNCATE TABLE bronze.orders;
-
-        PRINT '>> Inserting Data Into: bronze.orders';
-        BULK INSERT bronze.orders
-        FROM 'C:\Bikestore\orders.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Order Items
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.order_items';
-        TRUNCATE TABLE bronze.order_items;
-
-        PRINT '>> Inserting Data Into: bronze.order_items';
-        BULK INSERT bronze.order_items
-        FROM 'C:\Bikestore\order_items.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Products
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.products';
-        TRUNCATE TABLE bronze.products;
-
-        PRINT '>> Inserting Data Into: bronze.products';
-        BULK INSERT bronze.products
-        FROM 'C:\Bikestore\products.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Categories
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.categories';
-        TRUNCATE TABLE bronze.categories;
-
-        PRINT '>> Inserting Data Into: bronze.categories';
-        BULK INSERT bronze.categories
-        FROM 'C:\Bikestore\categories.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Brands
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.brands';
-        TRUNCATE TABLE bronze.brands;
-
-        PRINT '>> Inserting Data Into: bronze.brands';
-        BULK INSERT bronze.brands
-        FROM 'C:\Bikestore\brands.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Staffs
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.staffs';
-        TRUNCATE TABLE bronze.staffs;
-
-        PRINT '>> Inserting Data Into: bronze.staffs';
-        BULK INSERT bronze.staffs
-        FROM 'C:\Bikestore\staffs.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Stores
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.stores';
-        TRUNCATE TABLE bronze.stores;
-
-        PRINT '>> Inserting Data Into: bronze.stores';
-        BULK INSERT bronze.stores
-        FROM 'C:\Bikestore\stores.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Stocks
-        ------------------------------------------
-        SET @start_time = GETDATE();
-        PRINT '>> Truncating Table: bronze.stocks';
-        TRUNCATE TABLE bronze.stocks;
-
-        PRINT '>> Inserting Data Into: bronze.stocks';
-        BULK INSERT bronze.stocks
-        FROM 'C:\Bikestore\stocks.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            FIELDQUOTE = '"',
-            KEEPNULLS,
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
-        PRINT '>> -------------';
-
-        ------------------------------------------
-        -- Complete
-        ------------------------------------------
-        SET @batch_end_time = GETDATE();
-        PRINT '================================================';
-        PRINT 'Bronze Layer Load Completed Successfully';
-        PRINT 'Total Load Duration: ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' seconds';
-        PRINT '================================================';
-
-    END TRY
-    BEGIN CATCH
-        PRINT '================================================';
-        PRINT 'ERROR OCCURRED DURING BRONZE LOAD';
-        PRINT 'Error Message: ' + ERROR_MESSAGE();
-        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS NVARCHAR);
-        PRINT 'Error State: ' + CAST(ERROR_STATE() AS NVARCHAR);
-        PRINT '================================================';
-    END CATCH
-END;
+CREATE TABLE bronze.customers
+(
+    customer_id INT,
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    phone NVARCHAR(50),
+    email NVARCHAR(100),
+    street NVARCHAR(100),
+    city NVARCHAR(50),
+    state NVARCHAR(50),
+    zip_code NVARCHAR(20)
+);
 GO
 
--- Execute Procedure
-EXEC bronze.load_bronze;
+-- ==========================================
+-- 2. Staging Customers Table
+-- ==========================================
+IF OBJECT_ID('bronze.stg_customers','U') IS NOT NULL
+    DROP TABLE bronze.stg_customers;
+GO
+
+CREATE TABLE bronze.stg_customers
+(
+    customer_id NVARCHAR(50),
+    first_name NVARCHAR(255),
+    last_name NVARCHAR(255),
+    phone NVARCHAR(50),
+    email NVARCHAR(255),
+    street NVARCHAR(255),
+    city NVARCHAR(100),
+    state NVARCHAR(100),
+    zip_code NVARCHAR(50)
+);
+GO
+
+-- ==========================================
+-- 3. Orders Table
+-- ==========================================
+IF OBJECT_ID('bronze.orders','U') IS NOT NULL
+    DROP TABLE bronze.orders;
+GO
+
+CREATE TABLE bronze.orders
+(
+    order_id INT,
+    customer_id INT,
+    staff_id INT,
+    store_id INT,
+    order_date DATE,
+    shipped_date DATE,
+    status NVARCHAR(50)
+);
+GO
+
+-- ==========================================
+-- 4. Order Items Table
+-- ==========================================
+IF OBJECT_ID('bronze.order_items','U') IS NOT NULL
+    DROP TABLE bronze.order_items;
+GO
+
+CREATE TABLE bronze.order_items
+(
+    order_item_id INT,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    list_price DECIMAL(10,2),
+    discount DECIMAL(5,2)
+);
+GO
+
+-- ==========================================
+-- 5. Products Table
+-- ==========================================
+IF OBJECT_ID('bronze.products','U') IS NOT NULL
+    DROP TABLE bronze.products;
+GO
+
+CREATE TABLE bronze.products
+(
+    product_id INT,
+    product_name NVARCHAR(100),
+    brand_id INT,
+    category_id INT,
+    model_year INT,
+    list_price DECIMAL(10,2)
+);
+GO
+
+-- ==========================================
+-- 6. Categories Table
+-- ==========================================
+IF OBJECT_ID('bronze.categories','U') IS NOT NULL
+    DROP TABLE bronze.categories;
+GO
+
+CREATE TABLE bronze.categories
+(
+    category_id INT,
+    category_name NVARCHAR(50)
+);
+GO
+
+-- ==========================================
+-- 7. Brands Table
+-- ==========================================
+IF OBJECT_ID('bronze.brands','U') IS NOT NULL
+    DROP TABLE bronze.brands;
+GO
+
+CREATE TABLE bronze.brands
+(
+    brand_id INT,
+    brand_name NVARCHAR(50)
+);
+GO
+
+-- ==========================================
+-- 8. Staffs Table
+-- ==========================================
+IF OBJECT_ID('bronze.staffs','U') IS NOT NULL
+    DROP TABLE bronze.staffs;
+GO
+
+CREATE TABLE bronze.staffs
+(
+    staff_id INT,
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    email NVARCHAR(100),
+    phone NVARCHAR(50),
+    active BIT,
+    store_id INT,
+    manager_id INT
+);
+GO
+
+-- ==========================================
+-- 9. Stores Table
+-- ==========================================
+IF OBJECT_ID('bronze.stores','U') IS NOT NULL
+    DROP TABLE bronze.stores;
+GO
+
+CREATE TABLE bronze.stores
+(
+    store_id INT,
+    store_name NVARCHAR(100),
+    phone NVARCHAR(50),
+    email NVARCHAR(100),
+    street NVARCHAR(100),
+    city NVARCHAR(50),
+    state NVARCHAR(50),
+    zip_code NVARCHAR(20)
+);
+GO
+
+-- ==========================================
+-- 10. Stocks Table
+-- ==========================================
+IF OBJECT_ID('bronze.stocks','U') IS NOT NULL
+    DROP TABLE bronze.stocks;
+GO
+
+CREATE TABLE bronze.stocks
+(
+    store_id INT,
+    product_id INT,
+    quantity INT
+);
+GO
+
+-- ==========================================
+-- 11. Error Log Table
+-- ==========================================
+IF OBJECT_ID('bronze.load_errors','U') IS NOT NULL
+    DROP TABLE bronze.load_errors;
+GO
+
+CREATE TABLE bronze.load_errors
+(
+    table_name NVARCHAR(50),
+    row_number INT,
+    error_message NVARCHAR(500),
+    load_time DATETIME DEFAULT GETDATE()
+);
+GO
