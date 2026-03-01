@@ -92,3 +92,6 @@ CREATE TABLE bronze.categories (
     category_name NVARCHAR(500)
 );
 GO
+
+ALTER TABLE bronze.customers
+ADD cst_create_date DATE;
