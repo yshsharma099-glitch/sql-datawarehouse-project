@@ -76,7 +76,7 @@ BEGIN
         PRINT 'Loading silver.orders...';
         TRUNCATE TABLE silver.orders;
 
-        INSERT INTO silver.orders
+       INSERT INTO silver.orders
         (
             order_id,
             customer_id,
@@ -87,17 +87,17 @@ BEGIN
             store_id,
             staff_id
         )
-       SELECT
-        o.order_id,
-        o.customer_id,
-        CASE WHEN o.order_status NOT IN (1,2,3,4) THEN 1 ELSE o.order_status END AS order_status,
-            TRY_CONVERT(DATE, o.order_date) AS order_date,
-            TRY_CONVERT(DATE, o.required_date) AS required_date,
-            TRY_CONVERT(DATE, o.shipped_date)AS shipped_date,
-            TRY_CONVERT(INT, o.store_id)AS store_id,  
-            TRY_CONVERT(INT, o.staff_id)AS staff_id
-        FROM bronze.orders o
-        WHERE o.order_date IS NOT NULL;
+
+        SELECT
+            o.order_id,
+            o.customer_id,
+            CASE WHEN o.order_status NOT IN (1,2,3,4) THEN 1 ELSE o.order_status END AS order_status,
+            o.order_date,      -- already DATE 
+            o.required_date,   -- already DATE
+            o.shipped_date,    -- already DATE
+            o.store_id,
+            o.staff_id
+        FROM bronze.orders o;
 
         PRINT 'Orders Loaded: ' + CAST(@@ROWCOUNT AS VARCHAR);
 
@@ -343,3 +343,4 @@ ON silver.stocks(product_id, store_id);
 CREATE INDEX idx_orders_analytics
 ON silver.orders(order_date, customer_id)
 INCLUDE(order_id, store_id, staff_id);
+
