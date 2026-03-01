@@ -20,3 +20,28 @@ SELECT
     ) + '%' AS growth
 FROM revenue
 ORDER BY month;
+
+
+/*
+=============================================================
+Year over Year Growth
+=============================================================
+Purpose: Compare yearly business performance.
+=============================================================
+*/
+
+WITH yearly_sales AS
+(
+SELECT
+    YEAR(order_date) year,
+    SUM(sales_amount) revenue
+FROM analytics.fact_sales
+GROUP BY YEAR(order_date)
+)
+
+SELECT
+    year,
+    revenue,
+    LAG(revenue) OVER (ORDER BY year) prev_year_sales,
+    revenue - LAG(revenue) OVER (ORDER BY year) growth
+FROM yearly_sales;
