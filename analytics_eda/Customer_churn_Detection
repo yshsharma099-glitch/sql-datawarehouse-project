@@ -1,0 +1,12 @@
+--Customer Churn Risk Detection
+
+SELECT
+    dc.full_name,
+    MAX(fs.order_date) AS last_purchase_date,
+    DATEDIFF(day, MAX(fs.order_date), GETDATE()) AS days_inactive
+FROM gold.fact_sales fs
+JOIN gold.dim_customers dc
+    ON fs.customer_key = dc.customer_key
+GROUP BY dc.full_name
+HAVING DATEDIFF(day, MAX(fs.order_date), GETDATE()) > 180
+ORDER BY days_inactive DESC;
