@@ -31,4 +31,47 @@ CASE
     ELSE 'Low Value'
 END;
 
+--Top Customers (Customer Lifetime Value Analysis)
+
+SELECT TOP 10
+    dc.full_name,
+    SUM(fs.sales_amount) AS total_spent,
+    COUNT(DISTINCT fs.order_id) AS total_orders
+FROM gold.fact_sales fs
+JOIN gold.dim_customers dc
+    ON fs.customer_key = dc.customer_key
+GROUP BY dc.full_name
+ORDER BY total_spent DESC;
+
+
+-- Customer Segmentation
+
+WITH customer_metrics AS (
+    SELECT
+        customer_key,
+        MAX(order_date) AS last_order,
+        COUNT(order_id) AS frequency,
+        SUM(sales_amount) AS monetary
+    FROM gold.fact_sales
+    GROUP BY customer_key
+),
+rfm AS (
+    SELECT
+        customer_key,
+        DATEDIFF(day, last_order, GETDATE()) AS recency,
+        frequency,
+        monetary
+    FROM customer_metrics
+)
+SELECT
+    customer_key,
+    recency,
+    frequency,
+    monetary,
+    NTILE(4) OVER (ORDER BY recency DESC) AS recency_score,
+    NTILE(4) OVER (ORDER BY frequency) AS frequency_score,
+    NTILE(4) OVER (ORDER BY monetary) AS monetary_score
+FROM rfm;
+
+
 --This can be used for Marketing targeting,Customer retention strategy.
