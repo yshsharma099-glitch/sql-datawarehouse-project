@@ -42,4 +42,8 @@ FROM gold.fact_sales fs
 JOIN gold.dim_products dp
     ON fs.product_key = dp.product_key
 GROUP BY
+    dp.category_name,
+    fs.order_date
+ORDER BY fs.order_date; 
+
   
