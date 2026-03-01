@@ -1,0 +1,25 @@
+--Cohort Analysis
+
+WITH first_purchase AS (
+    SELECT
+        customer_key,
+        MIN(order_date) AS first_purchase_date
+    FROM gold.fact_sales
+    GROUP BY customer_key
+),
+cohort AS (
+    SELECT
+        fs.customer_key,
+        DATEFROMPARTS(YEAR(fp.first_purchase_date), MONTH(fp.first_purchase_date), 1) AS cohort_month,
+        DATEFROMPARTS(YEAR(fs.order_date), MONTH(fs.order_date), 1) AS order_month
+    FROM gold.fact_sales fs
+    JOIN first_purchase fp
+        ON fs.customer_key = fp.customer_key
+)
+SELECT
+    cohort_month,
+    order_month,
+    COUNT(DISTINCT customer_key) AS customers
+FROM cohort
+GROUP BY cohort_month, order_month
+ORDER BY cohort_month, order_month;
