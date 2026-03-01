@@ -1,18 +1,22 @@
-/*
-=============================================================
-Monthly Performance Analysis
-=============================================================
-Purpose:
-    Analyze business growth trends over time.
-=============================================================
-*/
+/* =========================================================
+   MONTHLY REVENUE GROWTH ANALYSIS
+   ========================================================= */
 
+WITH revenue AS (
+    SELECT
+        DATEFROMPARTS(YEAR(order_date), MONTH(order_date), 1) AS month,
+        SUM(sales_amount) AS revenue
+    FROM gold.fact_sales
+    GROUP BY DATEFROMPARTS(YEAR(order_date), MONTH(order_date), 1)
+)
 SELECT
-    DATETRUNC(month, order_date) month,
-    SUM(sales_amount) revenue,
-    SUM(quantity) quantity
-FROM analytics.fact_sales
-GROUP BY DATETRUNC(month, order_date)
+    month,
+    ROUND(revenue, 2) AS revenue,
+    ROUND(LAG(revenue) OVER (ORDER BY month), 2) AS prev_month_revenue,
+    FORMAT(
+        (revenue - LAG(revenue) OVER (ORDER BY month))
+        / NULLIF(LAG(revenue) OVER (ORDER BY month), 0) * 100,
+        'N2'
+    ) + '%' AS growth
+FROM revenue
 ORDER BY month;
-
---This is used for: Trend detection, Seasonality analysis, Sales forecasting
