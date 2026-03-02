@@ -2,96 +2,126 @@
 ===============================================================================
 DDL Script: Create Bronze Tables
 ===============================================================================
+Script Purpose:
+    This script creates tables in the 'bronze' schema, dropping existing tables 
+    if they already exist.
+	  Run this script to re-define the DDL structure of 'bronze' Tables
+===============================================================================
 */
 
-IF OBJECT_ID('bronze.customers', 'U') IS NOT NULL DROP TABLE bronze.customers;
-CREATE TABLE bronze.customers (
-    customer_id NVARCHAR(500),
-    first_name NVARCHAR(500), 
-    last_name NVARCHAR(500), 
-    phone NVARCHAR(500),
-    email NVARCHAR(500), 
-    street NVARCHAR(500), 
-    city NVARCHAR(500), 
-    state NVARCHAR(500), 
-    zip_code NVARCHAR(500)
-);
+IF OBJECT_ID('bronze.customers_stage','U') IS NOT NULL 
+    DROP TABLE bronze.customers_stage;
+GO 
 
-IF OBJECT_ID('bronze.orders', 'U') IS NOT NULL DROP TABLE bronze.orders;
-CREATE TABLE bronze.orders (
-    order_id NVARCHAR(500), 
-    customer_id NVARCHAR(500), 
-    order_status NVARCHAR(500), 
-    order_date NVARCHAR(500),
-    required_date NVARCHAR(500), 
-    shipped_date NVARCHAR(500), 
-    store_id NVARCHAR(500), 
-    staff_id NVARCHAR(500)
+CREATE TABLE bronze.customers_stage (
+    customer_id INT,
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    phone NVARCHAR(50) NULL,
+    email NVARCHAR(50),
+    street NVARCHAR(50),
+    city NVARCHAR(50),
+    state NVARCHAR(50),
+    zip_code NVARCHAR(50)
 );
-
-IF OBJECT_ID('bronze.order_items', 'U') IS NOT NULL DROP TABLE bronze.order_items;
-CREATE TABLE bronze.order_items (
-    order_id NVARCHAR(500),
-    item_id NVARCHAR(500), 
-    product_id NVARCHAR(500), 
-    quantity NVARCHAR(500),
-    list_price NVARCHAR(500),
-    discount NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.products', 'U') IS NOT NULL DROP TABLE bronze.products;
-CREATE TABLE bronze.products (
-    product_id NVARCHAR(500), 
-    product_name NVARCHAR(500),
-    brand_id NVARCHAR(500), 
-    category_id NVARCHAR(500),
-    model_year NVARCHAR(500), 
-    list_price NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.staffs', 'U') IS NOT NULL DROP TABLE bronze.staffs;
-CREATE TABLE bronze.staffs (
-    staff_id NVARCHAR(500),
-    first_name NVARCHAR(500),
-    last_name NVARCHAR(500), 
-    email NVARCHAR(500), 
-    phone NVARCHAR(500), 
-    active NVARCHAR(500), 
-    store_id NVARCHAR(500), 
-    manager_id NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.stores', 'U') IS NOT NULL DROP TABLE bronze.stores;
-CREATE TABLE bronze.stores (
-    store_id NVARCHAR(500), 
-    store_name NVARCHAR(500), 
-    phone NVARCHAR(500), 
-    email NVARCHAR(500), 
-    street NVARCHAR(500), 
-    city NVARCHAR(500), 
-    state NVARCHAR(500),
-    zip_code NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.stocks', 'U') IS NOT NULL DROP TABLE bronze.stocks;
-CREATE TABLE bronze.stocks (
-    store_id NVARCHAR(500), 
-    product_id NVARCHAR(500),
-    quantity NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.brands', 'U') IS NOT NULL DROP TABLE bronze.brands;
-CREATE TABLE bronze.brands (
-    brand_id NVARCHAR(500),
-    brand_name NVARCHAR(500)
-);
-
-IF OBJECT_ID('bronze.categories', 'U') IS NOT NULL DROP TABLE bronze.categories;
-CREATE TABLE bronze.categories (
-    category_id NVARCHAR(500), 
-    category_name NVARCHAR(500)
-);
+IF OBJECT_ID('bronze.customers','U') IS NOT NULL 
+    DROP TABLE bronze.customers;
 GO
 
-ALTER TABLE bronze.customers
-ADD cst_create_date DATE;
+CREATE TABLE bronze.customers (
+    customer_id INT,
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    phone NVARCHAR(50) NULL,
+    email NVARCHAR(50),
+    street NVARCHAR(50),
+    city NVARCHAR(50),
+    state NVARCHAR(50),
+    zip_code NVARCHAR(50),
+    create_date DATETIME NULL DEFAULT GETDATE() 
+);
+
+
+IF OBJECT_ID('bronze.stores','U') IS NOT NULL 
+	DROP TABLE bronze.stores;
+CREATE TABLE bronze.stores (
+	store_id INT ,
+	store_name NVARCHAR(50),
+	phone NVARCHAR(50),
+	email NVARCHAR(50),
+	street NVARCHAR(50),
+	city NVARCHAR(50),
+	state NVARCHAR(50),
+	zip_code NVARCHAR(50)
+);
+
+IF OBJECT_ID('bronze.staffs','U') IS NOT NULL 
+	DROP TABLE bronze.staffs;
+CREATE TABLE bronze.staffs (
+        staff_id NVARCHAR(50),
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    email NVARCHAR(50),
+    phone NVARCHAR(50),
+    active NVARCHAR(50),
+    store_id NVARCHAR(50),
+    manager_id NVARCHAR(50)
+);
+
+IF OBJECT_ID('bronze.products','U') IS NOT NULL 
+	DROP TABLE bronze.products;
+CREATE TABLE bronze.products(
+	product_id INT ,
+	product_name NVARCHAR(255),
+	brand_id INT ,
+	category_id INT ,
+	model_year INT ,
+	list_price DECIMAL(10, 2)
+);
+
+IF OBJECT_ID('bronze.orders','U') IS NOT NULL 
+	DROP TABLE bronze.orders;
+CREATE TABLE bronze.orders (
+	order_id INT ,
+	customer_id INT  ,
+	order_status NVARCHAR(50),
+	order_date NVARCHAR(50) ,
+	required_date NVARCHAR(50) ,
+	shipped_date NVARCHAR(50) ,
+	store_id INT ,
+	staff_id INT 
+) ;
+
+IF OBJECT_ID('bronze.order_items','U') IS NOT NULL 
+	DROP TABLE bronze.order_items;
+CREATE TABLE bronze.order_items (
+	order_id  INT,
+	item_id INT,
+	product_id INT,
+	quantity INT,
+	list_price DECIMAL(10,2),
+	discount DECIMAL(10,2)
+);
+
+IF OBJECT_ID('bronze.categories','U') IS NOT NULL 
+	DROP TABLE bronze.categories;
+CREATE TABLE bronze.categories (
+	category_id	INT ,
+	category_name NVARCHAR(50)
+);
+
+IF OBJECT_ID('bronze.brands','U') IS NOT NULL 
+	DROP TABLE bronze.brands;
+CREATE TABLE bronze.brands (
+	brand_id INT ,
+	brand_name NVARCHAR(50)
+);
+
+IF OBJECT_ID('bronze.stocks','U') IS NOT NULL 
+	DROP TABLE bronze.stocks;
+CREATE TABLE bronze.stocks (
+	store_id INT,
+	product_id INT,
+	quantity INT
+);
+
