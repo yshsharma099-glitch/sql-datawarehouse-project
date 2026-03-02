@@ -1,8 +1,10 @@
-
-/* =============================================================================
+/*
+===============================================================================
 DDL Script: Create Silver Tables
-============================================================================= */
+===============================================================================
+*/
 
+-- Customers
 IF OBJECT_ID('silver.customers','U') IS NOT NULL DROP TABLE silver.customers;
 CREATE TABLE silver.customers (
     customer_id INT,
@@ -14,71 +16,10 @@ CREATE TABLE silver.customers (
     city NVARCHAR(50),
     state NVARCHAR(50),
     zip_code NVARCHAR(20),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
+    create_date DATETIME
 );
 
-IF OBJECT_ID('silver.orders','U') IS NOT NULL DROP TABLE silver.orders;
-CREATE TABLE silver.orders (
-    order_id INT,
-    customer_id INT,
-    order_status INT,
-    order_date DATE,
-    required_date DATE,
-    shipped_date DATE,
-    store_id INT,
-    staff_id INT,
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
-IF OBJECT_ID('silver.order_items','U') IS NOT NULL DROP TABLE silver.order_items;
-CREATE TABLE silver.order_items (
-    order_id INT,
-    item_id INT,
-    product_id INT,
-    quantity INT,
-    list_price DECIMAL(10,2),
-    discount DECIMAL(10,2),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
-IF OBJECT_ID('silver.products','U') IS NOT NULL DROP TABLE silver.products;
-CREATE TABLE silver.products (
-    product_id INT,
-    product_name NVARCHAR(200),
-    brand_id INT,
-    category_id INT,
-    model_year INT,
-    list_price DECIMAL(10,2),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
-IF OBJECT_ID('silver.categories','U') IS NOT NULL DROP TABLE silver.categories;
-CREATE TABLE silver.categories (
-    category_id INT,
-    category_name NVARCHAR(100),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
-IF OBJECT_ID('silver.brands','U') IS NOT NULL DROP TABLE silver.brands;
-CREATE TABLE silver.brands (
-    brand_id INT,
-    brand_name NVARCHAR(100),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
-IF OBJECT_ID('silver.staffs','U') IS NOT NULL DROP TABLE silver.staffs;
-CREATE TABLE silver.staffs (
-    staff_id INT,
-    first_name NVARCHAR(50),
-    last_name NVARCHAR(50),
-    email NVARCHAR(100),
-    phone NVARCHAR(50),
-    active INT,
-    store_id INT,
-    manager_id INT,
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
-);
-
+-- Stores
 IF OBJECT_ID('silver.stores','U') IS NOT NULL DROP TABLE silver.stores;
 CREATE TABLE silver.stores (
     store_id INT,
@@ -88,14 +29,75 @@ CREATE TABLE silver.stores (
     street NVARCHAR(100),
     city NVARCHAR(50),
     state NVARCHAR(50),
-    zip_code NVARCHAR(20),
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
+    zip_code NVARCHAR(20)
 );
 
+-- Staff
+IF OBJECT_ID('silver.staffs','U') IS NOT NULL DROP TABLE silver.staffs;
+CREATE TABLE silver.staffs (
+    staff_id INT,
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    email NVARCHAR(100),
+    phone NVARCHAR(50),
+    active BIT,
+    store_id INT,
+    manager_id INT
+);
+
+-- Categories
+IF OBJECT_ID('silver.categories','U') IS NOT NULL DROP TABLE silver.categories;
+CREATE TABLE silver.categories (
+    category_id INT,
+    category_name NVARCHAR(100)
+);
+
+-- Brands
+IF OBJECT_ID('silver.brands','U') IS NOT NULL DROP TABLE silver.brands;
+CREATE TABLE silver.brands (
+    brand_id INT,
+    brand_name NVARCHAR(100)
+);
+
+-- Products
+IF OBJECT_ID('silver.products','U') IS NOT NULL DROP TABLE silver.products;
+CREATE TABLE silver.products (
+    product_id INT,
+    product_name NVARCHAR(255),
+    brand_id INT,
+    category_id INT,
+    model_year INT,
+    list_price DECIMAL(10,2)
+);
+
+-- Orders
+IF OBJECT_ID('silver.orders','U') IS NOT NULL DROP TABLE silver.orders;
+CREATE TABLE silver.orders (
+    order_id INT ,
+    customer_id INT,
+    order_status NVARCHAR(50),
+    order_date DATE,
+    required_date DATE,
+    shipped_date DATE NULL,
+    store_id INT,
+    staff_id INT
+);
+
+-- Order Items
+IF OBJECT_ID('silver.order_items','U') IS NOT NULL DROP TABLE silver.order_items;
+CREATE TABLE silver.order_items (
+    order_id INT,
+    item_id INT,
+    product_id INT,
+    quantity INT,
+    list_price DECIMAL(10,2),
+    discount DECIMAL(10,2)
+);
+
+-- Stocks
 IF OBJECT_ID('silver.stocks','U') IS NOT NULL DROP TABLE silver.stocks;
 CREATE TABLE silver.stocks (
     store_id INT,
     product_id INT,
-    quantity INT,
-    dwh_create_date DATETIME2 DEFAULT GETDATE()
+    quantity INT
 );
