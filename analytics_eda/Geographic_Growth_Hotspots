@@ -1,0 +1,16 @@
+--------------------------------------------------------------------
+-- Geographic Growth Hotspots
+--------------------------------------------------------------------
+
+SELECT
+    zip_code,
+    COUNT(DISTINCT c.customer_key) AS active_customers,
+    SUM(net_sales) AS total_revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_customers c
+ON f.customer_key = c.customer_key
+GROUP BY zip_code
+ORDER BY total_revenue DESC;
+
+
+/* Zip code 12020 has the highest total revenue */
