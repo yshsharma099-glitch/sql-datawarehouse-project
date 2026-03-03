@@ -33,7 +33,7 @@ CREATE VIEW gold.dim_customers AS
 SELECT
     ROW_NUMBER() OVER (ORDER BY customer_id) AS customer_key, -- Surrogate key
     customer_id,
-    CONCAT(first_name, ' ', last_name) AS full_name,
+    CONCAT(first_name, ' ', last_name) AS customer_name,
     city,
     state,
     zip_code,
@@ -166,5 +166,3 @@ LEFT JOIN gold.dim_staff dst
 LEFT JOIN gold.dim_date dd
     ON o.order_date = dd.full_date;
 GO
-
-
