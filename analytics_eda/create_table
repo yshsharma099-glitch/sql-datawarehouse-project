@@ -8,6 +8,7 @@ GO
 USE BikestoreAnalytics;
 GO
 
+
 /* =========================================================
    CREATE SCHEMA
    ========================================================= */
@@ -15,24 +16,10 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'analytics')
 EXEC('CREATE SCHEMA analytics');
 GO
 
-/*
-=============================================================
-Create Analytics Tables (Mirror Gold Layer)
-=============================================================
-Purpose:
-    Copy the curated business-ready data from the Gold layer
-    into physical tables for faster analytics queries.
-
-Reason:
-    Views are slower for heavy analysis and ML workloads.
-    Therefore we materialize them as tables here.
-=============================================================
-*/
 
 /* =========================================================
    DIM CUSTOMERS
    ========================================================= */
-
 IF OBJECT_ID('analytics.dim_customers','U') IS NULL
 BEGIN
     SELECT *
@@ -53,7 +40,6 @@ GO
 /* =========================================================
    DIM PRODUCTS
    ========================================================= */
-
 IF OBJECT_ID('analytics.dim_products','U') IS NULL
 BEGIN
     SELECT *
@@ -74,7 +60,6 @@ GO
 /* =========================================================
    DIM STORES
    ========================================================= */
-
 IF OBJECT_ID('analytics.dim_stores','U') IS NULL
 BEGIN
     SELECT *
@@ -93,22 +78,21 @@ GO
 
 
 /* =========================================================
-   DIM STAFFS
+   DIM STAFF
    ========================================================= */
-
-IF OBJECT_ID('analytics.dim_staffs','U') IS NULL
+IF OBJECT_ID('analytics.dim_staff','U') IS NULL
 BEGIN
     SELECT *
-    INTO analytics.dim_staffs
-    FROM BikestoreDW.gold.dim_staffs;
+    INTO analytics.dim_staff
+    FROM BikestoreDW.gold.dim_staff;
 END
 ELSE
 BEGIN
-    TRUNCATE TABLE analytics.dim_staffs;
+    TRUNCATE TABLE analytics.dim_staff;
 
-    INSERT INTO analytics.dim_staffs
+    INSERT INTO analytics.dim_staff
     SELECT *
-    FROM BikestoreDW.gold.dim_staffs;
+    FROM BikestoreDW.gold.dim_staff;
 END
 GO
 
@@ -116,7 +100,6 @@ GO
 /* =========================================================
    FACT SALES
    ========================================================= */
-
 IF OBJECT_ID('analytics.fact_sales','U') IS NULL
 BEGIN
     SELECT *
@@ -133,23 +116,24 @@ BEGIN
 END
 GO
 
-
 /* =========================================================
-   FACT STOCKS
+   DIM DATE
    ========================================================= */
 
-IF OBJECT_ID('analytics.fact_stocks','U') IS NULL
+IF OBJECT_ID('analytics.dim_date','U') IS NULL
 BEGIN
     SELECT *
-    INTO analytics.fact_stocks
-    FROM BikestoreDW.gold.fact_stocks;
+    INTO analytics.dim_date
+    FROM BikestoreDW.gold.dim_date;
 END
 ELSE
 BEGIN
-    TRUNCATE TABLE analytics.fact_stocks;
+    TRUNCATE TABLE analytics.dim_date;
 
-    INSERT INTO analytics.fact_stocks
+    INSERT INTO analytics.dim_date
     SELECT *
-    FROM BikestoreDW.gold.fact_stocks;
+    FROM BikestoreDW.gold.dim_date;
 END
 GO
+
+
