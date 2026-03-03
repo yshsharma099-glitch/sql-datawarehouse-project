@@ -1,0 +1,24 @@
+--------------------------------------------------------------------
+-- Demand Forecasting
+--------------------------------------------------------------------
+
+SELECT
+    d.year,
+    d.month,
+    p.category_name,
+    SUM(f.quantity) AS total_units_sold,
+    SUM(f.net_sales) AS revenue
+FROM analytics.fact_sales f
+JOIN BikestoreDW.gold.dim_date d
+ON f.date_key = d.date_key
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY
+    d.year,
+    d.month,
+    p.category_name;
+
+/* The goal of this query is to identify sales patterns over time by combining 
+calendar, products, and sales data.It helps us to understand that which
+months are the busiest and which products are the most selling so the inventories
+can be have full stock based on the demand forecastede */
