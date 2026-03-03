@@ -1,0 +1,34 @@
+
+/* =========================================================
+   Retention & Value Matrix
+   ========================================================= */
+SELECT
+    customer_key,
+    customer_name,
+    total_spend AS lifetime_value,
+    total_orders,
+    -- Calculate Efficiency
+    CAST(total_spend / NULLIF(total_orders, 0) AS DECIMAL(18,2)) AS avg_order_value,
+    days_since_last_purchase,
+    -- SEGMENTATION
+    CASE
+        WHEN total_spend > 5000 AND days_since_last_purchase <= 365 THEN 'VIP: Active'
+        WHEN total_spend > 5000 AND days_since_last_purchase > 365 THEN 'VIP: At Risk'
+        WHEN total_spend BETWEEN 2000 AND 5000 THEN 'Steady Customer'
+        ELSE 'Low Engagement'
+    END AS customer_health_status,
+    -- CHURN PROBABILITY
+    CASE
+        WHEN days_since_last_purchase > 365 THEN 'Churned'
+        WHEN days_since_last_purchase BETWEEN 181 AND 365 THEN 'High Risk'
+        ELSE 'Active'
+    END AS retention_priority
+FROM analytics.customer_360_view
+ORDER BY lifetime_value DESC;
+
+/* It answers the two most important questions for our business:
+
+  Who are our best customers? -- who provide the most value (i.e revenue) to our business
+  When did we lose them?     --  they are active with us or not and  since when they are inactive
+      
+*/
