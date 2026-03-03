@@ -1,0 +1,20 @@
+-- ===============================
+--  Key Indexes
+-- ===============================
+
+CREATE CLUSTERED INDEX idx_orders_order_id
+ON silver.orders(order_id);
+
+
+CREATE NONCLUSTERED INDEX idx_order_items_order_id
+ON silver.order_items(order_id);
+
+
+CREATE NONCLUSTERED INDEX idx_order_items_product_id
+ON silver.order_items(product_id);
+
+
+-- ===============================
+-- I created indexes on critical joins: orders,order_items,
+-- order_items and products to improve performance 
+-- ===============================
