@@ -59,7 +59,11 @@ BEGIN
             customer_id,
             TRIM(first_name) AS first_name,
             TRIM(last_name) AS last_name,
-            TRIM(phone) AS phone,
+            CASE 
+                WHEN phone IS NULL THEN 'n/a'
+                WHEN LEN(TRIM(phone)) BETWEEN 7 AND 20 THEN TRIM(phone)
+                ELSE 'n/a'
+            END AS phone,
             LOWER(TRIM(email)) AS email,
             TRIM(street) AS street,
             TRIM(city) AS city,
@@ -92,7 +96,11 @@ BEGIN
         SELECT 
             store_id,
             TRIM(store_name),
-            TRIM(phone),
+            CASE 
+                WHEN phone IS NULL THEN 'n/a'
+                WHEN LEN(TRIM(phone)) BETWEEN 7 AND 20 THEN TRIM(phone)
+                ELSE 'n/a'
+            END AS phone,
             LOWER(TRIM(email)),
             TRIM(street),
             TRIM(city),
@@ -120,8 +128,17 @@ BEGIN
             TRIM(first_name) AS first_name,             
             TRIM(last_name) AS last_name,               
             LOWER(TRIM(email)) AS email,                 
-            TRIM(phone) AS phone,                       
-            TRY_CAST(active AS BIT) AS is_active,        
+            CASE 
+                WHEN phone IS NULL THEN 'n/a'
+                WHEN LEN(TRIM(phone)) BETWEEN 7 AND 20 THEN TRIM(phone)
+                ELSE 'n/a'
+            END AS phone,                       
+            CASE 
+            WHEN active IS NULL THEN NULL
+            WHEN TRY_CAST(active AS INT) = 1 THEN 'Active'
+            WHEN TRY_CAST(active AS INT) = 0 THEN 'Inactive'
+            ELSE 'n/a'
+        END AS is_active,        
             TRY_CAST(store_id AS INT) AS store_id,      
             TRY_CAST(manager_id AS INT) AS manager_id   
         FROM bronze.staffs
@@ -180,8 +197,13 @@ BEGIN
             TRIM(product_name) AS product_name,
             brand_id,
             category_id,
-        CASE WHEN model_year < 1900 OR model_year > YEAR(GETDATE()) THEN NULL ELSE model_year END AS model_year,
-        CASE WHEN list_price < 0 THEN ABS(list_price) ELSE list_price END AS list_price            
+        CASE WHEN model_year < 1900 OR model_year > YEAR(GETDATE()) THEN NULL 
+        ELSE model_year END AS model_year,
+        CASE 
+            WHEN list_price IS NULL THEN 0
+            WHEN list_price < 0 THEN ABS(list_price)
+            ELSE list_price
+        END AS list_price           
         FROM bronze.products
         WHERE 
         product_id IS NOT NULL
@@ -215,7 +237,7 @@ BEGIN
             TRY_CAST(order_date AS DATE) AS order_date,
             TRY_CAST(required_date AS DATE) AS required_date,
             TRY_CAST(shipped_date AS DATE) AS shipped_date,
-            store_id,
+            TRY_CAST(store_id AS INT),
             staff_id
         FROM bronze.orders
         WHERE 
