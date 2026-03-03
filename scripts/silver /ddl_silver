@@ -40,7 +40,7 @@ CREATE TABLE silver.staffs (
     last_name NVARCHAR(50),
     email NVARCHAR(100),
     phone NVARCHAR(50),
-    active BIT,
+    active NVARCHAR(50),
     store_id INT,
     manager_id INT
 );
