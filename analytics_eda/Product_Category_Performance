@@ -1,0 +1,20 @@
+-- =========================================================
+-- EDA: Product Category Performance
+-- =========================================================
+
+SELECT
+    p.category_name,
+    COUNT(DISTINCT f.order_id) AS total_orders,
+    SUM(f.quantity) AS units_sold,
+    SUM(f.net_sales) AS revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.category_name
+ORDER BY revenue DESC;
+
+
+/*  This report shows us which Product Category is making the most money. 
+So we can be sure, that we aren't working hard on the wrong things. And can
+plan our production based on where the actual money is coming from so we can 
+match our inventory level. /*
