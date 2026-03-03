@@ -1,0 +1,19 @@
+--------------------------------------------------------------------
+-- Churn Detection (Customers inactive for 6 months)
+--------------------------------------------------------------------
+
+SELECT
+    customer_key,
+    customer_name,
+    total_spend,
+    days_since_last_purchase,
+    CASE
+        WHEN days_since_last_purchase > 180 THEN 'High Risk'
+        ELSE 'Active'
+    END AS churn_risk
+FROM analytics.customer_360_view;
+
+
+/* This can be directly used for:
+    Machine learning churn models
+    Retention campaigns */
