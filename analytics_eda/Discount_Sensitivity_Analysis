@@ -1,0 +1,33 @@
+-----------------------------------------------------------------------
+-- Discount Sensitivity Analysis
+-----------------------------------------------------------------------
+/*
+Business Question:
+Do discounts increase quantity sold?
+*/
+
+SELECT
+    category_name,
+    CASE
+        WHEN discount >= 0.20 THEN 'High Discount'
+        ELSE 'Low Discount'
+    END AS discount_bucket,
+    AVG(quantity) AS avg_quantity_sold,
+    SUM(net_sales) AS revenue
+FROM analytics.fact_sales f
+JOIN analytics.dim_products p
+ON f.product_key = p.product_key
+GROUP BY
+    category_name,
+    CASE
+        WHEN discount >= 0.20 THEN 'High Discount'
+        ELSE 'Low Discount'
+    END;
+
+/* Insight :
+
+Our data shows that customers are inelastic to discounts, offering big discounts doesn't actually make 
+customers buy more bikes at once; they still just buy one.
+Instead, these sales are mainly helping us clear inventory and bringing in about 20% of our total revenue.
+
+*/
