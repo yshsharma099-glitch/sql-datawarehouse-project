@@ -1,0 +1,19 @@
+-- =========================================================
+-- Product Affinity
+-- =========================================================
+SELECT
+    f1.product_key AS product_A,
+    f2.product_key AS product_B,
+    COUNT(*) AS bought_together
+FROM analytics.fact_sales f1
+JOIN analytics.fact_sales f2
+ON f1.order_id = f2.order_id
+AND f1.product_key < f2.product_key
+GROUP BY
+    f1.product_key,
+    f2.product_key
+ORDER BY bought_together DESC;
+
+/*  This analysis shows which items are bought together most
+    often. We use these patterns to suggest the right add-ons to
+    customers, helping us sell more items per order and increase our total sales. /*
