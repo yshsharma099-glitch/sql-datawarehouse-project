@@ -15,6 +15,6 @@ ON silver.order_items(product_id);
 
 
 -- ===============================
--- I created indexes on critical joins: orders,order_items,
--- order_items and products to improve performance 
+-- I created indexes on critical joins: orders,order_items
+-- and products to improve performance 
 -- ===============================
